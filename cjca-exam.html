@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Pass the HTB CJCA Exam - Hardcore Blue</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="article-top">
+<a href="index.html">HARDCORE BLUE</a>
+<a href="index.html">[ &larr; BACK TO HOME ]</a>
+</div>
+
+<div class="article-shell">
+<div class="article-meta">// PUBLISHED: TECHNICAL BRIEFING / FIELD NOTES</div>
+
+<article>
+<h1>How to Pass the HTB CJCA Exam</h1>
+<p><strong>Jackie Blake, defensive researcher</strong></p>
+
+<h2>The CJCA Exam Experience</h2>
+<p>The exam is tough. People’s experiences vary widely — from getting all 10 flags in two days to getting zero flags on both tries. In my case, I passed Red with 8/10 and failed Blue on the first attempt. I eventually passed with a perfect 100/100 and full marks on the alerts.</p>
+<p>There is a real gap between theory and practice, and the exam does not follow mechanically from the modules. I don’t mean it’s unfair. I simply want to address this gap and make people’s lives a bit easier.</p>
+
+<h2>What is the gap?</h2>
+<p>The exam presents a realistic target environment with multiple hosts. Module skills assessments are usually one host at a time. You will also deal with unknown information that needs to be googled. The behaviour of the system itself, and the ports and services, will often be novel.</p>
+<p>Let’s call this <strong>FACTOR 1: CONTEXT</strong>.</p>
+<p>You need to treat it as a real investigation (both Red and Blue). You have some knowledge to go on, but you still need to gather clues and interpret evidence. You have to combine your pattern recognition from many weeks of study with real context information such as file paths or actual URLs.</p>
+<p><strong>FACTOR 2: CRITICAL THINKING.</strong></p>
+<p>You will need to make decisions about which leads to follow and which work to re-check or repeat. This can lead to an infinite loop, which is made worse with AI assistance. So you have to recognise it when it happens and have a way to deal with it.</p>
+<p><strong>FACTOR 3: INFINITE LOOP</strong> (also known as a rabbit hole).</p>
+<p>You will face information overload, fatigue, disappointment, and panic.</p>
+<p><strong>FACTOR 4: FRUSTRATION TOLERANCE.</strong></p>
+
+<h2>The Critical Thinking Approach</h2>
+<p>Yes, you need to know the material very well — but that will not be enough. There is an X-factor we will call critical thinking. There is a difference between the map and the territory. The exam is all territory.</p>
+
+<h3>Critical thinking for Red</h3>
+<ul>
+<li>Where does the evidence lead?</li>
+<li>Given what I see, what is the simplest way forward?</li>
+<li>If a result does not meet my expectation, what could be the reason?</li>
+<li>Have I checked all the basics from my field manual?</li>
+<li>Could I try a variation on any command I used?</li>
+<li>What leads are the quickest and most promising to pursue?</li>
+</ul>
+
+<h3>Critical thinking for Blue</h3>
+<p>Imagine a scale from STRONGLY BENIGN to STRONGLY MALICIOUS, with UNCERTAIN in the middle.</p>
+<ul>
+<li>Did I check timezone and timestamps?</li>
+<li>Could I add or remove a column?</li>
+<li>What is the intent or motive behind the action?</li>
+<li>Is there any observable IoC?</li>
+<li>What is my hypothesis of the attack narrative?</li>
+</ul>
+
+<h2>Working With (and Without) AI</h2>
+<p>You can’t unring a bell, so I know it’s unlikely that anyone will completely avoid AI. But it can make you fail if you’re not careful. Here are a few DO’s and DON’Ts.</p>
+
+<h3>DO NOT</h3>
+<ul>
+<li>Chase multiple leads at the same time</li>
+<li>Copy-paste AI-generated prompts without knowing what you’re typing</li>
+<li>Expect AI to know the broader context of the exam</li>
+<li>Outsource your most precious resource: thinking</li>
+</ul>
+
+<h3>DO</h3>
+<ul>
+<li>Complete the modules and assessments without write-ups or AI</li>
+<li>Use guided learning with Gemini or HTB Coach so you can practice recall and spaced repetition</li>
+<li>Ask dumb questions (yes, it is a good idea)</li>
+<li>Know your terminal and tools and exactly how they behave under different conditions (for example, how long a full port scan takes)</li>
+<li>Use AI for syntax or detail checks (it can catch simple oversights, especially in a long PowerShell reverse shell)</li>
+<li>Translate a script or code from one language to another</li>
+<li>Fix a broken script under time pressure</li>
+</ul>
+<p>You don’t need AI to pentest. The human brain is very good at assimilating scattered information and making interpretations. You are actually better off reviewing all the evidence yourself, thinking about it, and coming up with ideas. If you rely too much on AI you may soon find your wheels spinning, hours passing with no progress, pasting commands you don’t understand, and eventually failing the exam.</p>
+
+<h2>My System</h2>
+<p>I learned the hard way by failing CPTS. You need to pay attention from the beginning and read as widely as you can. Quality references such as Mandiant’s publications, interviews with well-known developers, Microsoft Learn materials, and published exploit POCs are crucial. This adds about 20% to your course completion time, but it matters a lot.</p>
+<p>I use Ben Heater’s CTF methodology as a basic starting point for everything, then add to it where I can.</p>
+<p>I collected all my notes and resources into one place and created a locally hosted application so the entire pentest can be managed in one place. My system has a repertoire of CJCA and CPTS cheatsheets, field notes, and images. It also includes my field manual, focused mostly on enumeration and footprinting. It may seem primitive to some, but it’s simple and it works. I use a net_state function to keep track of all the leads that have been exhausted on every host.</p>
+
+<h3>Keeping track of users and creds</h3>
+<p>Here’s a simple function you can add to your <code>.bashrc</code> for quickly storing and accessing credentials and breadcrumbs as you find them. If you have 10 terminal panes open and 30 browser tabs, it can be useful to have immediate access to important commands, IP addresses, and credentials:</p>
+
+<pre><code>creds() {
+	echo "$*" >> ~/.creds
+	echo "[+] Added"
+}
+alias creds?='cat ~/.creds 2>/dev/null'
+credsreset() {
+	: > ~/.creds
+	echo "[+] Credentials cleared"
+}</code></pre>
+
+<p>I like to always remember the ground truth of the system I’m working with — the port signature and local enumeration. Once I’m 99% certain I know every open port on every host, I footprint them accordingly and pentest using Ben Heater’s CTF methodology as a broad first-pass framework.</p>
+<p>There is an iterative process you follow in many situations, including nmap scanning, fuzzing, and password cracking. You start with the fastest and easiest approaches, throw some scans at it, and see what happens. Then you expand and iterate.</p>
+
+<h3>Example</h3>
+<pre><code>start with the most obvious:
+nmap -F &lt;ip&gt;
+nmap -p- &lt;ip&gt;
+any hidden or custom ports?
+nmap -sU -F &lt;ip&gt;
+got all the ports?
+nmap -sC -sV &lt;ports&gt; &lt;ip&gt;
+nmap --script * &lt;port&gt; &lt;ip&gt;
+feel free to spend a few hours on this. if you are 100% sure you are missing nothing, it gives you an advantage by adding to the process of elimination.</code></pre>
+
+<h3>A Note on Notes</h3>
+<p>I keep mine as simple as possible. I use the Guake drop-down terminal with an alias for <code>cd /notes && ls</code>, then <code>nano 1.first_note</code>. Start by writing down the contents of the chapter, then go back and fill in each section as you read the material. I make sure to ask plenty of dumb questions, and I scribble a lot and leave ASCII art everywhere, because MY NOTES, MY RULES. No really — your notes are the playground where you get to experiment and question.</p>
+
+<h2>Dealing with Infinite Loops</h2>
+<p>Indications of an infinite loop:</p>
+<ul>
+<li>Running the same scan or command repeatedly with the same result</li>
+<li>Spending 60 minutes trying variations of one command</li>
+<li>Spending at least one full day on a single host</li>
+<li>Feeling overly stressed, bordering on fatigue or panic (it should be engaging, but not making you frantic)</li>
+<li>Feeling like you are “three feet from gold”</li>
+</ul>
+<p>Remember it’s possible that what you need is either hidden in plain sight or must be gathered from a different host. So your complete field manual must be exhausted on every host. It’s like a search algorithm: you run BFS &gt; DFS iteratively until you get all the flags. Start with a broad search and judge which leads are promising enough to deserve a deeper search.</p>
+
+<h3>Solutions for Infinite Loops</h3>
+<ul>
+<li>Write a summary of what you tried and the results (there’s nothing wrong with finding a dead end or a secure target — lots of targets are hardened)</li>
+<li>Writing a summary is like a secret weapon because it’s action that doesn’t depend on anything else and you can do it whenever you want</li>
+<li>Stretch and exercise (even 3–5 minutes is better than nothing). I run 3–4 times a week and had to force myself to do it</li>
+<li>Wash dishes, have a shave, take a shower. This is when your brain starts incubating the puzzle</li>
+<li>Work through the emotion of failure, then come back to a systematic way of working through the problem. As soon as you <em>do</em> find a flag, it will boost your confidence and lift your spirit. It also helps you disengage a bit from the outcome, which makes you work better</li>
+<li>Change your approach: switch to a different host, or switch from Red to Blue</li>
+</ul>
+
+<h2>Sysreptor and Report Issues</h2>
+<p>Finally, a few quick thoughts on the Sysreptor reporting format.</p>
+<p>You basically have two choices: deal with Sysreptor, or fill in the template you get with the exam. Sysreptor does offer some convenience, but realise that HTB doesn’t maintain it.</p>
+<p>Some issues:</p>
+<ul>
+<li>
+<strong>Sysreptor template is outdated and doesn’t match the exam template</strong><br>
+<strong>Solution:</strong> Install Sysreptor locally so you have admin rights and can edit templates. Then adjust it to match the official template. I removed the blue team section. Sysreptor can be tricky to edit — I had to use Designer &gt; HTML and Fields.
+</li>
+<li>
+<strong>Technical findings fields are missing</strong><br>
+<strong>Solution:</strong> Technical findings are not part of the official template. It seems we are expected to provide all visual evidence under “Collected Evidence”. Coming from the CPTS school of thought, I still like having detailed technical findings and figured the extra effort wouldn’t hurt. If you want to do the same, add the fields manually under Designer &gt; Fields &gt; Finding Fields and adjust the HTML as well. Make sure to publish every now and then to confirm the PDF still renders.
+</li>
+</ul>
+
+<h2>Dealing with Blue</h2>
+<p>Ask yourself: Given the evidence, what should I be looking for?</p>
+<ul>
+<li>Read the instructions and check all the alerts for an initial overview</li>
+<li>Fire up the SIEM and get comfortable in the environment</li>
+<li>Use the same step-by-step approach for every alert. It’s easy to lose track, so write your method down</li>
+<li>Ask WHO, WHAT, WHEN, HOW, WHY</li>
+<li>Look for IOCs</li>
+<li>Check the context surrounding the alert</li>
+<li>Keep a handy cheat sheet of event codes and Sysmon event IDs</li>
+</ul>
+<p>As an admin or blue teamer you need to know what the baseline is for normal system noise. A fresh Windows installation, for example, will be <em>very</em> noisy and generate all sorts of telemetry that is not malicious at all. Arm yourself with thorough knowledge of common true positives and false positives.</p>
+
+<h2>Takeaway</h2>
+<ul>
+<li>Create a baseline of the environment</li>
+<li>Be very thorough, but know when to stop</li>
+<li>If you get stuck, switch to Blue or switch to a different machine</li>
+<li>Be very good at enumeration and footprinting — this is the foundation</li>
+<li>Treat it as a real-life target and look for the human element and human error, instead of trying to reverse-engineer the exam</li>
+<li>Use <strong>one</strong> field manual. Don’t bounce around between HackTricks and the course cheat sheets. Summarise ahead of time</li>
+<li>HTB Academy is a guide only, not a cookbook to follow</li>
+<li>Manage your attention and your time</li>
+</ul>
+
+<h2>Tradecraft Resources</h2>
+<ul>
+<li>Ben’s CTF method<br>
+<a href="https://benheater.com/my-ctf-methodology/" target="_blank">https://benheater.com/my-ctf-methodology/</a>
+</li>
+<li>Blue Team Field Manual<br>
+<a href="https://github.com/barondante/Books/blob/master/Blue%20Team%20Field%20Manual%20(BTFM).pdf" target="_blank">https://github.com/barondante/Books/blob/master/Blue%20Team%20Field%20Manual%20(BTFM).pdf</a>
+</li>
+<li>Red Team Field Manual<br>
+<a href="https://github.com/bdunlap9/RTFM-v3-PDF" target="_blank">https://github.com/bdunlap9/RTFM-v3-PDF</a>
+</li>
+<li>Red Team Notes<br>
+<a href="https://www.ired.team/offensive-security-experiments/offensive-security-cheetsheets" target="_blank">https://www.ired.team/offensive-security-experiments/offensive-security-cheetsheets</a>
+</li>
+<li>AllTheThings<br>
+<a href="https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/linux-privilege-escalation/#summary" target="_blank">https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/linux-privilege-escalation/#summary</a>
+</li>
+</ul>
+</article>
+</div>
+</body>
+</html>
