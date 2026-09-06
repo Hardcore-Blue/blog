@@ -13,25 +13,79 @@
 </div>
 
 <div class="article-shell">
-<div class="article-meta">// PUBLISHED: TECHNICAL BRIEFING / FIELD NOTES</div>
+<div class="article-meta">// CJCA FIELD NOTES</div>
 
 <article>
 <h1>How to Pass the HTB CJCA Exam</h1>
-<p><strong>Jackie Blake, defensive researcher</strong></p>
+<p><strong>by j4ck13, defensive researcher</strong></p>
 
 <h2>The CJCA Exam Experience</h2>
-<p>The exam is tough. People’s experiences vary widely — from getting all 10 flags in two days to getting zero flags on both tries. In my case, I passed Red with 8/10 and failed Blue on the first attempt. I eventually passed with a perfect 100/100 and full marks on the alerts.</p>
-<p>There is a real gap between theory and practice, and the exam does not follow mechanically from the modules. I don’t mean it’s unfair. I simply want to address this gap and make people’s lives a bit easier.</p>
+<p>The exam is tough. People’s experiences vary widely — from getting all 10 flags in two days to getting zero flags on both tries. I passed Red with 8/10 and failed Blue on the first attempt. I eventually passed with 100/100 and full marks on the alerts. While HTB materials are usually excellent, there is a real gap between theory and practice. The exam does not follow mechanically from the modules. The modules serve as a guide, and most of the exam is REAL hacking and problem solving. My article provides some practical advice for dealing with this situation.</p>
+
+<p>note: my ideas will overlap with CPTS,<p>
 
 <h2>What is the gap?</h2>
-<p>The exam presents a realistic target environment with multiple hosts. Module skills assessments are usually one host at a time. You will also deal with unknown information that needs to be googled. The behaviour of the system itself, and the ports and services, will often be novel.</p>
-<p>Let’s call this <strong>FACTOR 1: CONTEXT</strong>.</p>
-<p>You need to treat it as a real investigation (both Red and Blue). You have some knowledge to go on, but you still need to gather clues and interpret evidence. You have to combine your pattern recognition from many weeks of study with real context information such as file paths or actual URLs.</p>
+<p>The exam presents a realistic target environment with multiple hosts. This is different from skills assessments which are usually one small section or one host at a time. In the exam you need to control your workflow and time management, enumerate and chase leads, and assess vulnerabilities in real time without guidance. If an exploit doesn't work, it's up to you how far you want to pursue it before giving up. You will also run into new technologies and novel information, meaning you need to "google it on the fly" and adapr your approach. It will come naturally if you paid attention and made an effort during the course. I often find it helpful to use google search insetead of an AI.</p>
+
+<p>I have indentified 4 factors that can make us more effective at live pentests, HTB exams, and the CJCA exam in particular: These 4 factors are CONTEXT, CRITICAL THINKING, RABBITHOLES. and FRUSTRATION TOLERANCE. Let's have a quick look at each one.<p>
+
+
+<p><strong>FACTOR 1: CONTEXT</strong>.</p>
+
+<p>Tools and techniques are great, but they need context to work properly. A great example of this is gobuster. Instead if blindly firing packets at the target, you will instead do recon first and form a clear picture of the network stack, technologies in place, and potential paths and file names. Fuzzing for a php file extension would only be useful if you could realistically expect to find one. I think this is one of the reasons that note taking is highly ecouraged. You gather much specific information about the network and hosts, such as ports and services, hostnames, paths, files, usernames, all of which become the context that enables your tools to work effectively. This is part of the theory-practice gap, because people seem to expect that the cheatsheet or module concepts can be followed like a cookbook and will deliver a result. In almost all cases of exam scenarios, you will need to think for yourself and work for your meal. So information gathering and vulnerability assessment make use of a feedback loop; the tighter the loop the better result.<p>
+
+
+
 <p><strong>FACTOR 2: CRITICAL THINKING.</strong></p>
-<p>You will need to make decisions about which leads to follow and which work to re-check or repeat. This can lead to an infinite loop, which is made worse with AI assistance. So you have to recognise it when it happens and have a way to deal with it.</p>
-<p><strong>FACTOR 3: INFINITE LOOP</strong> (also known as a rabbit hole).</p>
-<p>You will face information overload, fatigue, disappointment, and panic.</p>
+<p>You need to treat it as a real investigation (both Red and Blue). You have some knowledge to go on, but you still need to gather clues and interpret evidence. You have to combine your pattern recognition from many weeks of study with real context information. You need to switch on your investigator-brain from the beginning, since it will be a realistic partially visible network. The information will be incomplete, and sometimes rely more on logic than memory to find the attack path. Furthermore information fragments may be scattered and what you need may be present on the same host, or you find a clue that points you to a different host. The resulting information map is truly massive if you consider all possible attack paths or all possible combinations of tools. This is where practice and active problem solvoing make the difference. </p>
+
+
+<p><strong>FACTOR 3: RABBITHOLES</strong></p>
+
+<p>Not all leads will be equally promising, and many will be dead ends. Chasing dead ends is simply part of daily hacking life, but during an exam it can cost you valuable time. I had my first real experience with this during CPTS, and the CJCA presents a similar challenge, although to a lesser extent.</p>
+
+<p>The problem is that a task may require knowledge you don't have, a command you don't remember, or some slight modification or obscure technique that requires fresh attention. The Academy's search function can be useful, but you need to decide beforehand what to do when you get stuck and where you will source your knowledge. The best resource is your personal field manual, compiled from your HTB notes and external sources. The worst approach is to rely entirely on AI.</p>
+
+<p>A good rule of thumb is to ask yourself what the core ideas of the relevant chapters were and what skills they imply. At the very least, you should be able to recognise when you are entering an infinite loop and have a plan for what to do next. Come up with that plan beforehand; you will not find a universal answer elsewhere. What is a rabbithole for one person may be an obvious solve for someone else. Experience is a major differentiator here.</p>
+
+<p><strong>Some techniques for handling rabbitholes:</strong></p>
+
+<ol>
+<li>Review all your enumeration and summaries.</li>
+<li>Review your cheat sheets.</li>
+<li>Apply critical thinking.</li>
+<li>Switch from Red to Blue, or vice versa, to break the loop.</li>
+</ol>
+
+<p><strong>DEALING WITH INFINITE LOOPS</strong></p>
+
+<p><strong>Indications of an infinite loop:</strong></p>
+
+<ul>
+<li>Running the same scan or command repeatedly with the same result.</li>
+<li>Spending 60 minutes trying variations of the same command.</li>
+<li>Spending an entire day on a single host.</li>
+<li>Becoming overly stressed, fatigued, or close to panic. It should be engaging, not frantic.</li>
+<li>Feeling like you are "three feet from gold."</li>
+</ul>
+
+<p>Remember that what you need may be hidden in plain sight or may need to be gathered from another host. Your complete field manual should therefore be exhausted across every host. Think of it like a search algorithm: iteratively run BFS &gt; DFS until you have found all the flags. Start broad, then decide which leads are promising enough to investigate deeply.</p>
+
+<p><strong>SOLUTIONS FOR INFINITE LOOPS</strong></p>
+
+<ul>
+<li>Write a summary of what you tried and the results. There is nothing wrong with finding a dead end or a secure target; many targets are hardened.</li>
+<li>Writing a summary is a secret weapon because it is an action that doesn't depend on anything else. You can do it whenever you are stuck.</li>
+<li>Stretch or exercise. Even 3–5 minutes is better than nothing. I run 3–4 times a week and sometimes had to force myself to do it.</li>
+<li>Wash the dishes, shave, or take a shower. This gives your brain space to incubate the puzzle.</li>
+<li>Work through the emotion of failure, then return to a systematic approach. Finding a flag will boost your confidence and lift your spirits. Disengaging slightly from the outcome also helps you work better.</li>
+<li>Change your approach: switch to another host, or switch from Red to Blue.</li>
+</ul>
+
+
 <p><strong>FACTOR 4: FRUSTRATION TOLERANCE.</strong></p>
+<p>You will face information overload, and fatigue. After investing much study time and perhaps depending on the certification to get a job, you may feel the sudden rush of disappointment when you realise it will not be easy and perhaps even impossible. For me, flags 7-9 came in the late hours of days 4 and 5, and only during the break did I realise the path to flag 10. The first day I knew that my goal of 10 flags in 2 days would not be possible. CPTS felt the same way, when it took 6 days to find the first flag. But I promise that you can still have a really rewarding experience if you deal with the frustration, take a break, and get back at it with a fresh mindset and more methodical way of working.
+
 
 <h2>The Critical Thinking Approach</h2>
 <p>Yes, you need to know the material very well — but that will not be enough. There is an X-factor we will call critical thinking. There is a difference between the map and the territory. The exam is all territory.</p>
@@ -91,7 +145,9 @@
 	echo "$*" >> ~/.creds
 	echo "[+] Added"
 }
+
 alias creds?='cat ~/.creds 2>/dev/null'
+
 credsreset() {
 	: > ~/.creds
 	echo "[+] Credentials cleared"
@@ -101,39 +157,27 @@ credsreset() {
 <p>There is an iterative process you follow in many situations, including nmap scanning, fuzzing, and password cracking. You start with the fastest and easiest approaches, throw some scans at it, and see what happens. Then you expand and iterate.</p>
 
 <h3>Example</h3>
-<pre><code>start with the most obvious:
+<pre><code>Start with the most obvious:
+
 nmap -F &lt;ip&gt;
+
 nmap -p- &lt;ip&gt;
-any hidden or custom ports?
+
+Any hidden or custom ports?
+
 nmap -sU -F &lt;ip&gt;
-got all the ports?
+
+Got all the ports? Any UDP or firewalled ports?
+
 nmap -sC -sV &lt;ports&gt; &lt;ip&gt;
-nmap --script * &lt;port&gt; &lt;ip&gt;
-feel free to spend a few hours on this. if you are 100% sure you are missing nothing, it gives you an advantage by adding to the process of elimination.</code></pre>
+
+nmap --script * &lt;port&gt; &lt;ip&gt; </code></pre>
+
+<p>Feel free to spend a few hours on this. If you are 100% sure you are missing nothing, it gives you an advantage by adding to the process of elimination.<p>
 
 <h3>A Note on Notes</h3>
 <p>I keep mine as simple as possible. I use the Guake drop-down terminal with an alias for <code>cd /notes && ls</code>, then <code>nano 1.first_note</code>. Start by writing down the contents of the chapter, then go back and fill in each section as you read the material. I make sure to ask plenty of dumb questions, and I scribble a lot and leave ASCII art everywhere, because MY NOTES, MY RULES. No really — your notes are the playground where you get to experiment and question.</p>
 
-<h2>Dealing with Infinite Loops</h2>
-<p>Indications of an infinite loop:</p>
-<ul>
-<li>Running the same scan or command repeatedly with the same result</li>
-<li>Spending 60 minutes trying variations of one command</li>
-<li>Spending at least one full day on a single host</li>
-<li>Feeling overly stressed, bordering on fatigue or panic (it should be engaging, but not making you frantic)</li>
-<li>Feeling like you are “three feet from gold”</li>
-</ul>
-<p>Remember it’s possible that what you need is either hidden in plain sight or must be gathered from a different host. So your complete field manual must be exhausted on every host. It’s like a search algorithm: you run BFS &gt; DFS iteratively until you get all the flags. Start with a broad search and judge which leads are promising enough to deserve a deeper search.</p>
-
-<h3>Solutions for Infinite Loops</h3>
-<ul>
-<li>Write a summary of what you tried and the results (there’s nothing wrong with finding a dead end or a secure target — lots of targets are hardened)</li>
-<li>Writing a summary is like a secret weapon because it’s action that doesn’t depend on anything else and you can do it whenever you want</li>
-<li>Stretch and exercise (even 3–5 minutes is better than nothing). I run 3–4 times a week and had to force myself to do it</li>
-<li>Wash dishes, have a shave, take a shower. This is when your brain starts incubating the puzzle</li>
-<li>Work through the emotion of failure, then come back to a systematic way of working through the problem. As soon as you <em>do</em> find a flag, it will boost your confidence and lift your spirit. It also helps you disengage a bit from the outcome, which makes you work better</li>
-<li>Change your approach: switch to a different host, or switch from Red to Blue</li>
-</ul>
 
 <h2>Sysreptor and Report Issues</h2>
 <p>Finally, a few quick thoughts on the Sysreptor reporting format.</p>
