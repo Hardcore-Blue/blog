@@ -1,0 +1,320 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Pass the HTB CJCA Exam - Hardcore Blue</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="article-top">
+<a href="index.html">HARDCORE BLUE</a>
+<a href="index.html">[ &larr; BACK TO HOME ]</a>
+</div>
+
+<div class="article-shell">
+<div class="article-meta">// CJCA FIELD NOTES</div>
+
+<article>
+
+<h1>How to Pass the HTB CJCA Exam</h1>
+<p><strong>by j4ck13, defensive researcher</strong></p>
+
+<p><strong>Note:</strong> This article contains no exam solutions, flags, credentials, target information, screenshots, or other confidential examination content. It is a discussion of general preparation, methodology, and lessons learned from my personal experience.</p>
+
+<h2>The CJCA Exam Experience</h2>
+
+<p>The exam is tough. People&rsquo;s experiences vary widely, and my own experience involved both successes and failures along the way. While HTB materials are usually excellent, there is a real gap between theory and practice. The exam does not follow mechanically from the modules. The modules serve as a guide, but the assessment ultimately requires real problem solving and independent thinking. This article provides some practical advice for dealing with that situation.</p>
+
+<p>My ideas will overlap with CPTS, because many of the underlying skills are the same.</p>
+
+<h2>What Is the Gap?</h2>
+
+<p>The assessment requires you to work through a realistic environment rather than completing one small skill assessment at a time. You need to control your workflow and time management, enumerate and chase leads, and assess vulnerabilities in real time without step-by-step guidance.</p>
+
+<p>If an exploit or technique does not work, it is up to you to decide how far you want to pursue it before changing direction. You will also encounter technologies and information that are unfamiliar to you, meaning you need to research things on the fly and adapt your approach. This will come naturally if you paid attention and made an effort during the course. I often find it helpful to use Google search instead of AI when I need to quickly understand something.</p>
+
+<p>I have identified four factors that can make us more effective at live pentests, practical assessments, and the CJCA in particular: <strong>CONTEXT, CRITICAL THINKING, RABBITHOLES,</strong> and <strong>FRUSTRATION TOLERANCE</strong>. Let&rsquo;s have a quick look at each one.</p>
+
+<h2>Factor 1: Context</h2>
+
+<p>Tools and techniques are great, but they need context to work properly. A great example of this is Gobuster. Instead of blindly firing packets at a target, you should first perform reconnaissance and form a clear picture of the network stack, technologies in place, and potential paths and file names.</p>
+
+<p>Fuzzing for a PHP file extension would only be useful if you could realistically expect to find one. I think this is one of the reasons that note-taking is highly encouraged. You gather specific information about the network and hosts, such as ports and services, hostnames, paths, files, and usernames. All of these become the context that enables your tools to work effectively.</p>
+
+<p>This is part of the theory-practice gap, because people sometimes expect that a cheatsheet or module concept can be followed like a cookbook and will deliver a result. In almost all practical scenarios, you will need to think for yourself and work for your meal.</p>
+
+<p>Information gathering and vulnerability assessment therefore make use of a feedback loop: the tighter the loop, the better the result.</p>
+
+<h2>Factor 2: Critical Thinking</h2>
+
+<p>You need to treat practical work as a real investigation. You have some knowledge to go on, but you still need to gather clues and interpret evidence. You have to combine pattern recognition from many weeks of study with real contextual information.</p>
+
+<p>You need to switch on your investigator brain from the beginning, because the environment will only be partially visible. The information will be incomplete, and sometimes logic will matter more than memory when determining where to look next.</p>
+
+<p>Information fragments may be scattered, and what you need may be present on one system while a clue points you toward another. The resulting information map can become enormous if you consider every possible attack path and every possible combination of tools.</p>
+
+<p>This is where practice and active problem solving make the difference.</p>
+
+<h2>Factor 3: Rabbitholes</h2>
+
+<p>Not all leads will be equally promising, and many will be dead ends. Chasing dead ends is simply part of daily hacking life, but during an assessment it can cost you valuable time. I had my first real experience with this during CPTS, and the CJCA presents a similar challenge, although to a lesser extent.</p>
+
+<p>The problem is that a task may require knowledge you do not have, a command you do not remember, or some slight modification or obscure technique that requires fresh attention. The Academy&rsquo;s search function can be useful, but you need to decide beforehand what to do when you get stuck and where you will source your knowledge.</p>
+
+<p>The best resource is your personal field manual, compiled from your HTB notes and external sources. The worst approach is to rely entirely on AI.</p>
+
+<p>A good rule of thumb is to ask yourself what the core ideas of the relevant chapters were and what skills they imply. At the very least, you should be able to recognise when you are entering an infinite loop and have a plan for what to do next.</p>
+
+<p>Come up with that plan beforehand; you will not find a universal answer elsewhere. What is a rabbithole for one person may be an obvious solve for someone else. Experience is a major differentiator here.</p>
+
+<p><strong>Some techniques for handling rabbitholes:</strong></p>
+
+<ol>
+<li>Review all your enumeration and summaries.</li>
+<li>Review your cheatsheets.</li>
+<li>Apply critical thinking.</li>
+<li>Change perspective or move to a different problem when appropriate.</li>
+</ol>
+
+<h2>Dealing With Infinite Loops</h2>
+
+<p><strong>Indications of an infinite loop:</strong></p>
+
+<ul>
+<li>Running the same scan or command repeatedly with the same result.</li>
+<li>Spending 60 minutes trying variations of the same command.</li>
+<li>Spending an excessive amount of time on a single host or problem.</li>
+<li>Becoming overly stressed, fatigued, or close to panic. It should be engaging, not frantic.</li>
+<li>Feeling like you are &ldquo;three feet from gold.&rdquo;</li>
+</ul>
+
+<p>Remember that what you need may be hidden in plain sight or may need to be gathered from somewhere else. Your complete field manual should therefore be applied systematically across the environment.</p>
+
+<p>Think of it like a search algorithm: iteratively run BFS &gt; DFS until you have exhausted the useful possibilities. Start broad, then decide which leads are promising enough to investigate deeply.</p>
+
+<h2>Solutions for Infinite Loops</h2>
+
+<ul>
+<li>Write a summary of what you tried and the results. There is nothing wrong with finding a dead end or a secure target; many targets are hardened.</li>
+<li>Writing a summary is a secret weapon because it is an action that does not depend on anything else. You can do it whenever you are stuck.</li>
+<li>Stretch or exercise. Even 3&ndash;5 minutes is better than nothing.</li>
+<li>Wash the dishes, shave, or take a shower. This gives your brain space to incubate the puzzle.</li>
+<li>Work through the emotion of failure, then return to a systematic approach. Finding progress will boost your confidence and lift your spirits. Disengaging slightly from the outcome also helps you work better.</li>
+<li>Change your approach: switch to another host, another problem, or another perspective.</li>
+</ul>
+
+<h2>Factor 4: Frustration Tolerance</h2>
+
+<p>You will face information overload and fatigue. After investing a lot of study time and perhaps depending on the certification to help you get a job, you may feel a sudden rush of disappointment when you realise that the assessment will not be easy and may even feel impossible.</p>
+
+<p>That feeling is normal. The important thing is how you respond to it.</p>
+
+<p>CPTS taught me the same lesson: sometimes progress can take much longer than expected. You can still have a rewarding experience if you deal with the frustration, take a break, and get back to work with a fresh mindset and a more methodical approach.</p>
+
+<h2>The Critical Thinking Approach</h2>
+
+<p>Yes, you need to know the material very well &mdash; but that will not be enough. There is an X-factor we will call critical thinking.</p>
+
+<p>There is a difference between the map and the territory. The assessment is all territory.</p>
+
+<h3>Critical Thinking for Red</h3>
+
+<ul>
+<li>Where does the evidence lead?</li>
+<li>Given what I see, what is the simplest way forward?</li>
+<li>If a result does not meet my expectation, what could be the reason?</li>
+<li>Have I checked the basics from my field manual?</li>
+<li>Could I try a variation on any command I used?</li>
+<li>What leads are the quickest and most promising to pursue?</li>
+</ul>
+
+<h3>Critical Thinking for Blue</h3>
+
+<p>Imagine a scale from <strong>STRONGLY BENIGN</strong> to <strong>STRONGLY MALICIOUS</strong>, with <strong>UNCERTAIN</strong> in the middle.</p>
+
+<ul>
+<li>Did I check timezone and timestamps?</li>
+<li>Could I add or remove a column?</li>
+<li>What is the intent or motive behind the action?</li>
+<li>Is there any observable IoC?</li>
+<li>What is my hypothesis of the attack narrative?</li>
+</ul>
+
+<h2>Working With (and Without) AI</h2>
+
+<p>You cannot unring a bell, so I know it is unlikely that anyone will completely avoid AI. But it can make you fail if you are not careful. Here are a few DOs and DON&rsquo;Ts.</p>
+
+<h3>Do Not</h3>
+
+<ul>
+<li>Chase multiple leads at the same time.</li>
+<li>Copy-paste AI-generated prompts without knowing what you are typing.</li>
+<li>Expect AI to know the broader context of your environment.</li>
+<li>Outsource your most precious resource: thinking.</li>
+</ul>
+
+<h3>Do</h3>
+
+<ul>
+<li>Complete the modules and assessments without relying on write-ups or AI.</li>
+<li>Use guided learning with Gemini or HTB Coach so you can practice recall and spaced repetition.</li>
+<li>Ask dumb questions. Yes, it is a good idea.</li>
+<li>Know your terminal and tools and exactly how they behave under different conditions.</li>
+<li>Use AI for syntax or detail checks. It can catch simple oversights, especially in long PowerShell commands.</li>
+<li>Translate a script or piece of code from one language to another.</li>
+<li>Fix a broken script under time pressure.</li>
+</ul>
+
+<p>You do not need AI to pentest. The human brain is very good at assimilating scattered information and making interpretations. You are often better off reviewing the evidence yourself, thinking about it, and coming up with ideas.</p>
+
+<p>If you rely too much on AI, you may soon find your wheels spinning, hours passing with no progress, pasting commands you do not understand, and eventually failing the assessment.</p>
+
+<h2>My System</h2>
+
+<p>I learned the hard way by failing CPTS. You need to pay attention from the beginning and read as widely as you can. Quality references such as Mandiant&rsquo;s publications, interviews with well-known developers, Microsoft Learn materials, and published exploit POCs are crucial. This adds about 20% to your course completion time, but it matters a lot.</p>
+
+<p>I use Ben Heater&rsquo;s CTF methodology as a basic starting point for everything, then add to it where I can.</p>
+
+<p>I collected all my notes and resources into one place and created a locally hosted application so the entire pentest can be managed in one place. My system has a repertoire of CJCA and CPTS cheatsheets, field notes, and images. It also includes my field manual, focused mostly on enumeration and footprinting.</p>
+
+<p>It may seem primitive to some, but it is simple and it works. I use a <code>net_state</code> function to keep track of the leads that have been exhausted on every host.</p>
+
+<h3>Keeping Track of Users and Creds</h3>
+
+<p>Here is a simple function you can add to your <code>.bashrc</code> for quickly storing and accessing credentials and breadcrumbs as you find them. If you have 10 terminal panes open and 30 browser tabs, it can be useful to have immediate access to important commands, IP addresses, and credentials:</p>
+
+<pre><code>creds() {
+	echo "$*" &gt;&gt; ~/.creds
+	echo "[+] Added"
+}
+
+alias creds?='cat ~/.creds 2&gt;/dev/null'
+
+credsreset() {
+	: &gt; ~/.creds
+	echo "[+] Credentials cleared"
+}</code></pre>
+
+<p>I like to always remember the ground truth of the system I am working with: the port signature and local enumeration. Once I am 99% certain I know every open port on every host, I footprint them accordingly and pentest using Ben Heater&rsquo;s CTF methodology as a broad first-pass framework.</p>
+
+<p>There is an iterative process you follow in many situations, including Nmap scanning, fuzzing, and password cracking. You start with the fastest and easiest approaches, throw some scans at it, and see what happens. Then you expand and iterate.</p>
+
+<h3>Example</h3>
+
+<pre><code>Start with the most obvious:
+
+nmap -F &lt;ip&gt;
+
+nmap -p- &lt;ip&gt;
+
+Any hidden or custom ports?
+
+nmap -sU -F &lt;ip&gt;
+
+Got all the ports? Any UDP or firewalled ports?
+
+nmap -sC -sV &lt;ports&gt; &lt;ip&gt;
+
+nmap --script * &lt;port&gt; &lt;ip&gt;</code></pre>
+
+<p>Feel free to spend some time on this. If you are highly confident that you are missing nothing, it gives you an advantage by adding to the process of elimination.</p>
+
+<h3>A Note on Notes</h3>
+
+<p>I keep mine as simple as possible. I use the Guake drop-down terminal with an alias for <code>cd /notes &amp;&amp; ls</code>, then <code>nano 1.first_note</code>.</p>
+
+<p>Start by writing down the contents of the chapter, then go back and fill in each section as you read the material. I make sure to ask plenty of dumb questions, and I scribble a lot and leave ASCII art everywhere, because <strong>MY NOTES, MY RULES.</strong></p>
+
+<p>No, really &mdash; your notes are the playground where you get to experiment and question.</p>
+
+<h2>Sysreptor and Report Issues</h2>
+
+<p>Finally, a few quick thoughts on the Sysreptor reporting format.</p>
+
+<p>You basically have two choices: deal with Sysreptor, or fill in the reporting template provided for the assessment. Sysreptor does offer some convenience, but realise that HTB does not maintain it.</p>
+
+<p>Some issues:</p>
+
+<ul>
+
+<li>
+<strong>The Sysreptor template may not match the current reporting requirements.</strong><br>
+<strong>Solution:</strong> Install Sysreptor locally so you have admin rights and can edit templates. Then adjust it to match the requirements you are working with. Sysreptor can be tricky to edit &mdash; I had to use Designer &gt; HTML and Fields.
+</li>
+
+<li>
+<strong>Technical findings fields may need to be added manually.</strong><br>
+<strong>Solution:</strong> If you prefer having detailed technical findings, add the fields manually under Designer &gt; Fields &gt; Finding Fields and adjust the HTML as required. Make sure to publish every now and then to confirm the PDF still renders.
+</li>
+
+</ul>
+
+<h2>Dealing With Blue</h2>
+
+<p>Ask yourself: Given the evidence, what should I be looking for?</p>
+
+<ul>
+<li>Read the instructions and establish an initial overview.</li>
+<li>Get comfortable in the SIEM environment.</li>
+<li>Use the same step-by-step approach for every alert. It is easy to lose track, so write your method down.</li>
+<li>Ask WHO, WHAT, WHEN, HOW, WHY.</li>
+<li>Look for IOCs.</li>
+<li>Check the context surrounding the alert.</li>
+<li>Keep a handy cheatsheet of event codes and Sysmon event IDs.</li>
+</ul>
+
+<p>As an admin or blue teamer, you need to know what the baseline is for normal system noise. A fresh Windows installation, for example, will be <em>very</em> noisy and generate all sorts of telemetry that is not malicious at all.</p>
+
+<p>Arm yourself with thorough knowledge of common true positives and false positives.</p>
+
+<h2>Takeaway</h2>
+
+<ul>
+<li>Create a baseline of the environment.</li>
+<li>Be very thorough, but know when to stop.</li>
+<li>If you get stuck, change problems or change perspective.</li>
+<li>Be very good at enumeration and footprinting &mdash; this is the foundation.</li>
+<li>Treat it as a real-life target and look for the human element and human error, instead of trying to reverse-engineer the assessment.</li>
+<li>Use <strong>one</strong> field manual. Do not bounce around between HackTricks and course cheatsheets. Summarise ahead of time.</li>
+<li>HTB Academy is a guide, not a cookbook to follow.</li>
+<li>Manage your attention and your time.</li>
+</ul>
+
+<h2>Tradecraft Resources</h2>
+
+<ul>
+
+<li>
+Ben&rsquo;s CTF method<br>
+<a href="https://benheater.com/my-ctf-methodology/" target="_blank" rel="noopener noreferrer">https://benheater.com/my-ctf-methodology/</a>
+</li>
+
+<li>
+Blue Team Field Manual<br>
+<a href="https://github.com/barondante/Books/blob/master/Blue%20Team%20Field%20Manual%20(BTFM).pdf" target="_blank" rel="noopener noreferrer">https://github.com/barondante/Books/blob/master/Blue%20Team%20Field%20Manual%20(BTFM).pdf</a>
+</li>
+
+<li>
+Red Team Field Manual<br>
+<a href="https://github.com/bdunlap9/RTFM-v3-PDF" target="_blank" rel="noopener noreferrer">https://github.com/bdunlap9/RTFM-v3-PDF</a>
+</li>
+
+<li>
+Red Team Notes<br>
+<a href="https://www.ired.team/offensive-security-experiments/offensive-security-cheetsheets" target="_blank" rel="noopener noreferrer">https://www.ired.team/offensive-security-experiments/offensive-security-cheetsheets</a>
+</li>
+
+<li>
+AllTheThings<br>
+<a href="https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/linux-privilege-escalation/#summary" target="_blank" rel="noopener noreferrer">https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/linux-privilege-escalation/#summary</a>
+</li>
+
+</ul>
+
+</article>
+</div>
+</body>
+</html>
