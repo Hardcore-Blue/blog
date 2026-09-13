@@ -1,13 +1,13 @@
 :root {
-  --bg: #06111a;
-  --panel: #091923;
-  --panel2: #0b202d;
-  --border: #12384c;
-  --text: #c7dbe5;
-  --muted: #64899d;
-  --blue: #2c9dcc;
-  --hot: #51c7ff;
-  --dark: #042b40;
+  --bg: #040c14;
+  --panel: #07141e;
+  --panel2: #0a1a26;
+  --border: #0f2a3c;
+  --text: #b8d0dc;
+  --muted: #5a7a8c;
+  --blue: #1e7a9e;
+  --hot: #3a9fc2;          /* quieter than the old bright cyan */
+  --dark: #031a28;
   --mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
 }
 
@@ -22,7 +22,9 @@ html, body {
 }
 
 body {
-  background: radial-gradient(circle at top right, rgba(15,80,110,.14), transparent 35%), linear-gradient(180deg, #06111a, #040c12);
+  background: 
+  radial-gradient(circle at top right, rgba(20, 70, 95, 0.08), transparent 40%),
+  linear-gradient(180deg, #040c14, #030a10);
   color: var(--text);
   font-family: var(--mono);
   overflow-y: auto;
@@ -70,7 +72,7 @@ body.splash-layout .splash h1 {
   color: var(--hot);
   font-weight: 900;
   letter-spacing: 0.16em;
-  text-shadow: 0 0 24px rgba(81, 199, 255, 0.28);
+  text-shadow: 0 0 18px rgba(58, 159, 194, 0.18); /* much quieter glow */
 }
 
 body.splash-layout .splash p {
@@ -108,7 +110,7 @@ body.splash-layout .splash p {
   border-color: var(--hot);
   color: var(--hot);
   background: var(--dark);
-  box-shadow: 0 0 12px rgba(81, 199, 255, 0.15);
+  box-shadow: 0 0 10px rgba(58, 159, 194, 0.10);
 }
 
 /* Article / Blog Page Layout */
@@ -145,7 +147,7 @@ body.splash-layout .splash p {
 }
 
 .article-shell article {
-  background: rgba(9, 25, 35, 0.55);
+  background: rgba(7, 20, 30, 0.65);
   border: 1px solid var(--border);
   padding: 45px clamp(25px, 6vw, 70px);
   font-family: var(--mono);
@@ -157,7 +159,7 @@ body.splash-layout .splash p {
 .article-shell h1 {
   font-size: clamp(28px, 4vw, 42px);
   line-height: 1.15;
-  color: #effcff;
+  color: #e4f4f9;
   margin: 0 0 20px;
   letter-spacing: 0.05em;
 }
@@ -173,7 +175,7 @@ body.splash-layout .splash p {
 }
 
 .article-shell h3 {
-  color: #9ddfff;
+  color: #7ebed4;
   font-size: 14px;
   margin-top: 25px;
 }
@@ -195,19 +197,19 @@ body.splash-layout .splash p {
 
 .article-shell code {
   font-family: var(--mono);
-  background: #06131c;
+  background: #051018;
   border: 1px solid var(--border);
   padding: 2px 6px;
-  color: #9fe4ff;
+  color: #8fd0e8;
   font-size: 13px;
 }
 
 .article-shell pre {
-  background: #041019;
+  background: #030d15;
   border: 1px solid var(--border);
   padding: 18px;
   overflow: auto;
-  color: #c8f0ff;
+  color: #b8e0f0;
   font-family: var(--mono);
   font-size: 12px;
   line-height: 1.55;
@@ -224,12 +226,12 @@ body.splash-layout .splash p {
 .article-shell blockquote {
   border-left: 3px solid var(--hot);
   padding-left: 18px;
-  color: #a9c7d4;
+  color: #8aa8b8;
   margin: 20px 0;
 }
 
 .article-shell strong {
-  color: #eafaff;
+  color: #d8eef5;
 }
 
 @media(max-width: 700px) {
@@ -239,4 +241,35 @@ body.splash-layout .splash p {
   .article-shell article {
     padding: 25px 20px;
   }
+}
+
+body.splash-layout .splash .subtitle {
+  margin-top: 14px;
+  color: var(--muted);
+  letter-spacing: 0.28em;
+  font-size: 13px;
+}
+
+body.splash-layout .splash .author {
+  margin-top: 18px;
+  color: var(--hot);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+}
+
+.splash-contact {
+  margin-top: 7rem;          /* pushed lower */
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.splash-contact a {
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.splash-contact a:hover {
+  color: var(--hot);
 }
