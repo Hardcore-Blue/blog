@@ -1,0 +1,1165 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Python Pattern Recognition - Hardcore Blue</title>
+
+  <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+  <div class="article-top">
+
+    <a href="index.html">HARDCORE BLUE</a>
+
+    <a href="index.html">[ ← BACK TO HOME ]</a>
+
+  </div>
+
+  <div class="article-shell">
+
+    <div class="article-meta">// PYTHON FIELD NOTES</div>
+
+    <article>
+
+      <h1>Python Pattern Recognition</h1>
+
+      <p><strong>by j4ck13</strong></p>
+
+      <p>A mental database of rudimentary patterns to choose from when writing Python.</p>
+
+      <h2>Core Process</h2>
+
+      <ol>
+
+        <li>Define the problem.</li>
+
+        <li>Choose data types and data structures.</li>
+
+        <li>Design the program flow.</li>
+
+        <li>Identify normal cases and failure cases.</li>
+
+        <li>Choose required imports.</li>
+
+        <li>Write a simple first version.</li>
+
+        <li>Test it with normal, empty, invalid, and unexpected input.</li>
+
+        <li>Add logging and defensive error handling.</li>
+
+      </ol>
+
+      <h2>Basics</h2>
+
+<pre><code># This is a comment.
+
+# Comments explain code and are ignored by Python.
+
+print("Hello, world!")
+
+# Python uses indentation to define blocks:
+
+if True:
+
+    print("This line belongs to the if statement.")</code></pre>
+
+      <h2>Variables</h2>
+
+<pre><code>name = "Alice"
+
+age = 30
+
+is_logged_in = True
+
+username = "admin"       # str
+
+port = 443               # int
+
+timeout = 2.5            # float
+
+is_secure = True         # bool
+
+nothing = None           # NoneType
+
+# Inspect a value
+
+value = 42
+
+print(type(value))
+
+print(isinstance(value, int))
+
+# Reassigning
+
+count = 1
+
+count = count + 1
+
+count += 1
+
+print(count)  # 3
+
+# Multiple assignment / swap
+
+first_name, last_name = "Ada", "Lovelace"
+
+x, y = 10, 20
+
+x, y = y, x</code></pre>
+
+      <h2>Strings</h2>
+
+<pre><code>message = "Hello"
+
+name = "Alice"
+
+print(message + ", " + name)
+
+print(len(message))
+
+print(name.upper())
+
+print(name.lower())
+
+# f-strings
+
+username = "alice"
+
+login_count = 3
+
+message = f"User {username} has logged in {login_count} times."
+
+print(message)
+
+# Useful string patterns
+
+text = "  Suspicious login detected  "
+
+cleaned = text.strip()
+
+lowercase = cleaned.lower()
+
+words = cleaned.split()
+
+parts = "a,b,c".split(",")
+
+# Slicing
+
+value = "abcdef"
+
+print(value[0])      # a
+
+print(value[1:4])    # bcd
+
+print(value[:3])     # abc
+
+print(value[3:])     # def
+
+print(value[-1])     # f
+
+print(value[::-1])   # fedcba
+
+# Checking text
+
+filename = "report.pdf"
+
+if filename.endswith(".pdf"):
+
+    print("PDF file")
+
+if "report" in filename:
+
+    print("The filename contains report")</code></pre>
+
+      <h2>Operators</h2>
+
+<pre><code>a = 10
+
+b = 3
+
+print(a + b)   # 13
+
+print(a - b)   # 7
+
+print(a * b)   # 30
+
+print(a / b)   # 3.333...
+
+print(a // b)  # 3
+
+print(a % b)   # 1
+
+print(a ** b)  # 1000
+
+count = 10
+
+count += 1
+
+count -= 2
+
+count *= 3
+
+count /= 2
+
+x = 10
+
+print(x == 10)  # Equal
+
+print(x != 10)  # Not equal
+
+print(x > 5)
+
+print(x < 20)
+
+print(x >= 10)
+
+print(x <= 10)
+
+# Assignment vs comparison
+
+x = 10       # Assignment
+
+x == 10      # Comparison
+
+# Logical operators
+
+is_admin = True
+
+is_authenticated = True
+
+is_locked = False
+
+if is_admin and is_authenticated:
+
+    print("Access granted")
+
+if is_admin or is_authenticated:
+
+    print("At least one condition is true")
+
+if not is_locked:
+
+    print("Account is available")
+
+# Membership
+
+allowed_methods = ["GET", "POST"]
+
+if "GET" in allowed_methods:
+
+    print("GET is allowed")
+
+if "DELETE" not in allowed_methods:
+
+    print("DELETE is not allowed")
+
+# Identity
+
+result = None
+
+if result is None:
+
+    print("No result")
+
+# Bitwise
+
+a = 0b1010
+
+b = 0b1100
+
+print(a & b)   # AND
+
+print(a | b)   # OR
+
+print(a ^ b)   # XOR
+
+print(~a)      # NOT
+
+print(a << 1)  # Shift left
+
+print(a >> 1)  # Shift right</code></pre>
+
+      <h2>Input and Output</h2>
+
+<pre><code>username = input("Username: ")
+
+print(f"Hello, {username}")
+
+port_text = input("Port: ")
+
+try:
+
+    port = int(port_text)
+
+    print(f"Port selected: {port}")
+
+except ValueError:
+
+    print("Port must be a number.")
+
+# Reusable input helper
+
+def ask_for_integer(prompt):
+
+    while True:
+
+        value = input(prompt)
+
+        try:
+
+            return int(value)
+
+        except ValueError:
+
+            print("Please enter a valid integer.")</code></pre>
+
+      <h2>Conditionals</h2>
+
+<pre><code>status_code = 403
+
+if status_code == 403:
+
+    print("Access denied")
+
+status_code = 404
+
+if status_code == 200:
+
+    message = "Success"
+
+elif status_code == 404:
+
+    message = "Not found"
+
+else:
+
+    message = "Other response"
+
+print(message)
+
+# Ternary
+
+is_open = True
+
+message = "Open" if is_open else "Closed"
+
+print(message)</code></pre>
+
+      <h2>Loops</h2>
+
+<pre><code>for number in range(5):
+
+    print(number)
+
+# range patterns
+
+range(5)        # 0 through 4
+
+range(1, 6)     # 1 through 5
+
+range(0, 10, 2) # 0, 2, 4, 6, 8
+
+ports = [22, 80, 443]
+
+for port in ports:
+
+    print(f"Checking port {port}")
+
+for character in "abc":
+
+    print(character)
+
+attempts = 0
+
+while attempts < 3:
+
+    print("Attempt", attempts + 1)
+
+    attempts += 1
+
+# break / continue
+
+for port in [22, 80, 443]:
+
+    if port == 80:
+
+        print("Found port 80")
+
+        break
+
+for port in [22, 0, 443]:
+
+    if port == 0:
+
+        continue
+
+    print(f"Processing port {port}")
+
+# for-else
+
+target = "admin"
+
+users = ["guest", "operator", "analyst"]
+
+for user in users:
+
+    if user == target:
+
+        print("User found")
+
+        break
+
+else:
+
+    print("User not found")
+
+# enumerate
+
+alerts = ["failed login", "blocked IP", "malware detected"]
+
+for index, alert in enumerate(alerts, start=1):
+
+    print(f"{index}. {alert}")
+
+# zip
+
+users = ["alice", "bob"]
+
+roles = ["admin", "analyst"]
+
+for user, role in zip(users, roles):
+
+    print(f"{user}: {role}")</code></pre>
+
+      <h2>Functions</h2>
+
+<pre><code>def number_sum(number1, number2):
+
+    result = number1 + number2
+
+    return result
+
+total = number_sum(5, 7)
+
+print(total)
+
+def connect(host, port, timeout=5):
+
+    print(host, port, timeout)
+
+connect(host="example.com", port=443, timeout=10)
+
+# Type hints
+
+def number_sum(number1: int, number2: int) -> int:
+
+    return number1 + number2
+
+# Multiple return values
+
+def get_status():
+
+    return "OK", 200
+
+message, status_code = get_status()</code></pre>
+
+      <h2>Modules and Imports</h2>
+
+<pre><code>import math
+
+print(math.sqrt(16))
+
+from pathlib import Path
+
+path = Path("report.txt")
+
+print(path.exists())
+
+import datetime as dt
+
+now = dt.datetime.now()
+
+print(now)
+
+# Avoid this:
+
+# from module_name import *</code></pre>
+
+      <p>Common useful standard-library modules:</p>
+
+<pre><code>import argparse       # Command-line arguments
+
+import csv            # CSV files
+
+import hashlib        # Hash functions
+
+import hmac           # Secure comparisons
+
+import ipaddress      # IP address validation
+
+import json           # JSON data
+
+import logging        # Logs
+
+import os             # Operating-system functions
+
+import pathlib        # File paths
+
+import re             # Regular expressions
+
+import secrets        # Secure random values
+
+import socket         # Network operations
+
+import subprocess     # External programs
+
+import sys            # Python runtime
+
+import urllib.parse   # URL parsing</code></pre>
+
+<pre><code>python -m pip install package-name
+
+python -m venv .venv
+
+source .venv/bin/activate
+
+python -m pip install -r requirements.txt</code></pre>
+
+      <h2>Data Structures</h2>
+
+      <h3>Lists</h3>
+
+<pre><code>ports = [22, 80, 443]
+
+ports.append(8080)
+
+ports.remove(80)
+
+numbers = [5, 2, 9, 1]
+
+numbers.sort()
+
+reversed_numbers = list(reversed(numbers))
+
+# List comprehension
+
+ports = [22, 80, 443, 8080]
+
+secure_ports = [port for port in ports if port in {443, 8080}]</code></pre>
+
+      <h3>Tuples</h3>
+
+<pre><code>connection = ("192.168.1.10", 443)
+
+ip_address, port = connection</code></pre>
+
+      <h3>Sets</h3>
+
+<pre><code>unique_ips = {"192.168.1.10", "192.168.1.10", "192.168.1.20"}
+
+web_servers = {"10.0.0.1", "10.0.0.2"}
+
+database_servers = {"10.0.0.2", "10.0.0.3"}
+
+union = web_servers | database_servers
+
+intersection = web_servers & database_servers
+
+difference = web_servers - database_servers
+
+symmetric_difference = web_servers ^ database_servers
+
+blocked_ips = {"10.0.0.5", "10.0.0.8"}
+
+if "10.0.0.5" in blocked_ips:
+
+    print("Blocked address detected")</code></pre>
+
+      <h3>Dictionaries</h3>
+
+<pre><code>user = {
+
+    "username": "alice",
+
+    "role": "analyst",
+
+    "active": True
+
+}
+
+print(user["username"])
+
+role = user.get("role", "unknown")
+
+department = user.get("department", "not specified")
+
+user["last_login"] = "2026-09-21"
+
+user["active"] = False
+
+for key, value in user.items():
+
+    print(f"{key}: {value}")
+
+# Nested structure
+
+scan_result = {
+
+    "host": "192.168.1.10",
+
+    "open_ports": [22, 80, 443],
+
+    "services": {
+
+        22: "ssh",
+
+        80: "http",
+
+        443: "https"
+
+    }
+
+}
+
+print(scan_result["services"][443])</code></pre>
+
+      <h2>File Operations</h2>
+
+<pre><code>with open("file.txt", "r", encoding="utf-8") as file:
+
+    content = file.read()
+
+with open("events.log", "r", encoding="utf-8") as file:
+
+    for line in file:
+
+        line = line.strip()
+
+        if "ERROR" in line:
+
+            print(line)
+
+with open("users.txt", "r", encoding="utf-8") as file:
+
+    users = file.readlines()
+
+with open("report.txt", "w", encoding="utf-8") as file:
+
+    file.write("Security report\n")
+
+    file.write("No critical findings\n")
+
+with open("audit.log", "a", encoding="utf-8") as file:
+
+    file.write("User login recorded\n")</code></pre>
+
+      <p>File modes:</p>
+
+      <ul>
+
+        <li><code>"r"</code> — Read</li>
+
+        <li><code>"w"</code> — Write and overwrite</li>
+
+        <li><code>"a"</code> — Append</li>
+
+        <li><code>"x"</code> — Create (fails if exists)</li>
+
+        <li><code>"rb"</code> / <code>"wb"</code> — Binary</li>
+
+      </ul>
+
+<pre><code>from pathlib import Path
+
+path = Path("logs") / "events.log"
+
+if path.exists():
+
+    content = path.read_text(encoding="utf-8")
+
+output_directory = Path("reports")
+
+output_directory.mkdir(exist_ok=True)
+
+for path in Path(".").glob("*.log"):
+
+    print(path)</code></pre>
+
+      <h2>JSON and CSV</h2>
+
+<pre><code>import json
+
+data = {
+
+    "host": "192.168.1.10",
+
+    "ports": [22, 443]
+
+}
+
+with open("scan.json", "w", encoding="utf-8") as file:
+
+    json.dump(data, file, indent=2)
+
+with open("scan.json", "r", encoding="utf-8") as file:
+
+    data = json.load(file)
+
+import csv
+
+with open("users.csv", "r", encoding="utf-8", newline="") as file:
+
+    reader = csv.DictReader(file)
+
+    for row in reader:
+
+        print(row["username"], row["role"])
+
+rows = [
+
+    {"host": "10.0.0.1", "status": "open"},
+
+    {"host": "10.0.0.2", "status": "closed"}
+
+]
+
+with open("results.csv", "w", encoding="utf-8", newline="") as file:
+
+    writer = csv.DictWriter(file, fieldnames=["host", "status"])
+
+    writer.writeheader()
+
+    writer.writerows(rows)</code></pre>
+
+      <h2>Error Handling</h2>
+
+<pre><code>try:
+
+    number = int(input("Enter a number: "))
+
+    result = 10 / number
+
+    print(result)
+
+except ValueError:
+
+    print("Input must be a number.")
+
+except ZeroDivisionError:
+
+    print("The number cannot be zero.")
+
+try:
+
+    with open("config.txt", "r", encoding="utf-8") as file:
+
+        config = file.read()
+
+except FileNotFoundError:
+
+    print("Configuration file was not found.")
+
+except PermissionError:
+
+    print("Permission was denied.")
+
+# Prefer specific exceptions over bare Exception
+
+try:
+
+    number = int("42")
+
+except ValueError:
+
+    print("Conversion failed")
+
+else:
+
+    print("Conversion succeeded")
+
+finally:
+
+    print("This always runs")
+
+def validate_port(port):
+
+    if not 1 <= port <= 65535:
+
+        raise ValueError("Port must be between 1 and 65535")
+
+    return port</code></pre>
+
+      <h2>Logging</h2>
+
+<pre><code>import logging
+
+logging.basicConfig(
+
+    level=logging.INFO,
+
+    format="%(asctime)s [%(levelname)s] %(message)s"
+
+)
+
+logging.debug("Detailed diagnostic information")
+
+logging.info("Program started")
+
+logging.warning("Unexpected input received")
+
+logging.error("Operation failed")
+
+# File logging
+
+logging.basicConfig(
+
+    filename="audit.log",
+
+    level=logging.INFO,
+
+    format="%(asctime)s [%(levelname)s] %(message)s"
+
+)
+
+username = "alice"
+
+logging.info("User login processed: %s", username)</code></pre>
+
+      <h2>Common Algorithms &amp; Patterns</h2>
+
+<pre><code># Linear search (O(n))
+
+def find_user(users, target):
+
+    for user in users:
+
+        if user == target:
+
+            return True
+
+    return False
+
+# Dictionary lookup
+
+user_roles = {
+
+    "alice": "admin",
+
+    "bob": "analyst"
+
+}
+
+role = user_roles.get("alice")
+
+# Set membership
+
+known_bad_ips = {"10.0.0.5", "10.0.0.8"}
+
+if "10.0.0.5" in known_bad_ips:
+
+    print("Match found")
+
+# Sorting
+
+ports = [443, 22, 80, 8080]
+
+sorted_ports = sorted(ports)
+
+alerts = [
+
+    {"severity": 2, "message": "Warning"},
+
+    {"severity": 5, "message": "Critical"},
+
+    {"severity": 1, "message": "Info"}
+
+]
+
+alerts.sort(key=lambda alert: alert["severity"], reverse=True)
+
+from collections import Counter
+
+statuses = [200, 404, 200, 500, 404, 200]
+
+counts = Counter(statuses)
+
+from collections import defaultdict
+
+alerts_by_severity = defaultdict(list)
+
+alerts_by_severity["high"].append("Malware detected")</code></pre>
+
+      <h3>Graph Search</h3>
+
+<pre><code>network = {
+
+    "A": ["B", "C"],
+
+    "B": ["A", "D"],
+
+    "C": ["A"],
+
+    "D": ["B"]
+
+}
+
+from collections import deque
+
+def breadth_first_search(graph, start, target):
+
+    queue = deque([start])
+
+    visited = {start}
+
+    while queue:
+
+        current = queue.popleft()
+
+        if current == target:
+
+            return True
+
+        for neighbor in graph.get(current, []):
+
+            if neighbor not in visited:
+
+                visited.add(neighbor)
+
+                queue.append(neighbor)
+
+    return False
+
+def depth_first_search(graph, current, target, visited=None):
+
+    if visited is None:
+
+        visited = set()
+
+    if current == target:
+
+        return True
+
+    visited.add(current)
+
+    for neighbor in graph.get(current, []):
+
+        if neighbor not in visited:
+
+            if depth_first_search(graph, neighbor, target, visited):
+
+                return True
+
+    return False</code></pre>
+
+      <h2>Regular Expressions</h2>
+
+<pre><code>import re
+
+text = "Contact admin@example.com for help."
+
+match = re.search(r"[\w.-]+@[\w.-]+\.\w+", text)
+
+if match:
+
+    print(match.group())
+
+text = "IPs: 192.168.1.1 and 10.0.0.5"
+
+ips = re.findall(r"\b(?:\d{1,3}\.){3}\d{1,3}\b", text)
+
+print(ips)</code></pre>
+
+      <h2>Command-Line Tools</h2>
+
+<pre><code>import argparse
+
+def main():
+
+    parser = argparse.ArgumentParser(description="Display a hostname.")
+
+    parser.add_argument("hostname", help="Hostname to display")
+
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+
+    args = parser.parse_args()
+
+    print(f"Hostname: {args.hostname}")
+
+if __name__ == "__main__":
+
+    main()</code></pre>
+
+      <p>Never pass untrusted user input directly into shell commands.</p>
+
+      <h2>Object-Oriented Programming</h2>
+
+<pre><code>class User:
+
+    def __init__(self, username, role):
+
+        self.username = username
+
+        self.role = role
+
+    def describe(self):
+
+        return f"{self.username} is a {self.role}"
+
+user = User("alice", "analyst")
+
+print(user.describe())</code></pre>
+
+      <h2>Testing Checklist</h2>
+
+      <ul>
+
+        <li>Normal input</li>
+
+        <li>Empty input</li>
+
+        <li>Very large input</li>
+
+        <li>Negative input</li>
+
+        <li>Wrong data types</li>
+
+        <li>Missing files</li>
+
+        <li>Permission failures</li>
+
+        <li>Duplicate values</li>
+
+        <li>Unexpected formatting</li>
+
+        <li>Network or external-service failures</li>
+
+      </ul>
+
+      <h2>Defensive Programming Questions</h2>
+
+      <ul>
+
+        <li>What if the input is empty?</li>
+
+        <li>What if the input has the wrong type?</li>
+
+        <li>What if the file does not exist?</li>
+
+        <li>What if access is denied?</li>
+
+        <li>What if a value is outside the allowed range?</li>
+
+        <li>What if an external command fails?</li>
+
+        <li>What if the network is unavailable?</li>
+
+        <li>What information should not appear in an error message?</li>
+
+        <li>What should be logged?</li>
+
+        <li>Can the operation be safely repeated?</li>
+
+      </ul>
+
+      <h2>Small Program Template</h2>
+
+<pre><code>import argparse
+
+import logging
+
+from pathlib import Path
+
+
+def read_file(path: Path) -> str:
+
+    """Read a UTF-8 text file."""
+
+    try:
+
+        return path.read_text(encoding="utf-8")
+
+    except FileNotFoundError:
+
+        logging.error("File was not found: %s", path)
+
+        raise
+
+    except PermissionError:
+
+        logging.error("Permission denied: %s", path)
+
+        raise
+
+
+def analyze_text(text: str) -> dict:
+
+    """Return basic statistics about text."""
+
+    lines = text.splitlines()
+
+    error_lines = [line for line in lines if "ERROR" in line]
+
+    return {
+
+        "line_count": len(lines),
+
+        "error_count": len(error_lines),
+
+    }
+
+
+def main():
+
+    parser = argparse.ArgumentParser(description="Analyze a text file.")
+
+    parser.add_argument("filename")
+
+    parser.add_argument("--verbose", action="store_true")
+
+    args = parser.parse_args()
+
+    logging.basicConfig(
+
+        level=logging.DEBUG if args.verbose else logging.INFO,
+
+        format="%(asctime)s [%(levelname)s] %(message)s"
+
+    )
+
+    path = Path(args.filename)
+
+    try:
+
+        text = read_file(path)
+
+        results = analyze_text(text)
+
+        print(f"Lines: {results['line_count']}")
+
+        print(f"Errors: {results['error_count']}")
+
+    except OSError:
+
+        print("The file could not be processed.")
+
+
+if __name__ == "__main__":
+
+    main()</code></pre>
+
+    </article>
+
+  </div>
+
+</body>
+
+</html>
