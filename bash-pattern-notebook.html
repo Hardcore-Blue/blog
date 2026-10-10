@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bash Patterns for Beginners - Hardcore Blue</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="article-top">
+    <a href="index.html">HARDCORE BLUE</a>
+    <a href="index.html">← Home</a>
+  </div>
+
+  <div class="article-shell">
+    <div class="article-meta">Field and programming notes</div>
+    <article>
+      <h1>Bash Patterns for Beginners</h1>
+      <p><strong>by j4ck13</strong></p>
+      <p>A working notebook of small Bash patterns. Use them as starting points, change them for your task, and look up details when you need them.</p>
+
+      <h2>The mental model</h2>
+      <p>A Bash program mostly does three things:</p>
+      <ol>
+        <li><strong>Runs commands</strong> such as <code>wc</code> or <code>grep</code>.</li>
+        <li><strong>Makes decisions</strong> with <code>if</code>.</li>
+        <li><strong>Repeats steps</strong> with loops.</li>
+      </ol>
+      <p>Most small scripts follow this shape:</p>
+      <pre><code>get input → check it → do the work → show the result</code></pre>
+      <p>Before coding, answer four questions:</p>
+      <ul>
+        <li>What information comes in?</li>
+        <li>What should the program do with it?</li>
+        <li>What result should it show?</li>
+        <li>What can go wrong?</li>
+      </ul>
+
+      <h2>1. Find out what Bash already knows</h2>
+      <p>Bash has its own language words and built-in commands. Programs like <code>wc</code> and <code>grep</code> are separate tools that Bash can run.</p>
+      <pre><code>help             # Bash help topics and builtins
+help if          # help for the if structure
+help read        # help for the read builtin
+type echo        # identify echo
+type wc          # identify wc
+compgen -k       # list Bash keywords
+compgen -b       # list Bash builtins
+man wc           # manual for the wc program
+wc --help        # quick help for wc</code></pre>
+      <p>Use <code>help</code> for Bash features. Use <code>man</code> or <code>--help</code> for external programs. Use <code>type</code> when you are not sure what a name refers to.</p>
+
+      <h2>2. Run a command</h2>
+      <p>At a terminal prompt, a command usually has this shape:</p>
+      <pre><code>command option input</code></pre>
+      <p>For example:</p>
+      <pre><code>wc -l /var/log/dpkg.log</code></pre>
+      <p>This runs <code>wc</code>, asks for a line count with <code>-l</code>, and gives it a file path.</p>
+      <p>In a script, commands work the same way:</p>
+      <pre><code>#!/usr/bin/env bash
+
+printf 'Hello, Bash!\n'</code></pre>
+      <p><code>printf</code> prints formatted text. It is a good default for script output.</p>
+
+      <h2>3. Store and use a value</h2>
+      <pre><code>file=/var/log/dpkg.log
+printf 'Checking: %s\n' "$file"</code></pre>
+      <ul>
+        <li>Assignment has <strong>no spaces</strong> around <code>=</code>.</li>
+        <li><code>$file</code> means “insert the value stored in <code>file</code>.”</li>
+        <li>Write <code>"$file"</code> when passing a path to a command. Quotes keep a path with spaces together as one argument.</li>
+      </ul>
+
+      <h2>4. Give a script an input</h2>
+      <p>Arguments let you pass information when starting a script:</p>
+      <pre><code>#!/usr/bin/env bash
+
+file=$1
+printf 'You gave me: %s\n' "$file"</code></pre>
+      <p>Run it like this:</p>
+      <pre><code>bash my_script.sh /var/log/dpkg.log</code></pre>
+      <p>Useful argument variables:</p>
+      <table>
+        <thead>
+          <tr><th>Variable</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>$0</code></td><td>Script name</td></tr>
+          <tr><td><code>$1</code></td><td>First argument</td></tr>
+          <tr><td><code>$2</code></td><td>Second argument</td></tr>
+          <tr><td><code>$#</code></td><td>Number of arguments</td></tr>
+          <tr><td><code>"$@"</code></td><td>All arguments, kept as separate items</td></tr>
+        </tbody>
+      </table>
+      <p>Check that an argument was supplied:</p>
+      <pre><code>if [[ $# -ne 1 ]]; then
+    printf 'Usage: %s FILE\n' "$0" &gt;&amp;2
+    exit 2
+fi</code></pre>
+      <p><code>-ne</code> means “not equal.” <code>&gt;&amp;2</code> sends the message to the error-output stream. <code>exit 2</code> stops the script with a non-zero status.</p>
+
+      <h2>5. Make a decision</h2>
+      <p>Use <code>if</code> when the program should do something only when a condition is true:</p>
+      <pre><code>if [[ -f "$file" ]]; then
+    printf 'This is a regular file.\n'
+else
+    printf 'This is not a regular file.\n'
+fi</code></pre>
+      <p>Read the structure like this:</p>
+      <ul>
+        <li><code>if</code> starts the decision.</li>
+        <li><code>[[ ... ]]</code> tests a condition.</li>
+        <li><code>then</code> starts the commands for a true condition.</li>
+        <li><code>else</code> starts the other case.</li>
+        <li><code>fi</code> closes the decision.</li>
+      </ul>
+      <p>Add more cases with <code>elif</code>:</p>
+      <pre><code>if [[ -f "$path" ]]; then
+    printf 'File\n'
+elif [[ -d "$path" ]]; then
+    printf 'Directory\n'
+else
+    printf 'Neither a regular file nor a directory\n'
+fi</code></pre>
+      <p>Common file tests:</p>
+      <pre><code>[[ -e "$path" ]]   # something exists at this path
+[[ -f "$path" ]]   # regular file
+[[ -d "$path" ]]   # directory
+[[ -r "$path" ]]   # readable by this user
+[[ -w "$path" ]]   # writable by this user
+[[ -x "$path" ]]   # executable file, or searchable directory
+[[ -s "$path" ]]   # has a size greater than zero</code></pre>
+      <p>Combine tests:</p>
+      <pre><code>[[ -f "$file" &amp;&amp; -r "$file" ]]  # regular file AND readable
+[[ -e "$file" || -L "$file" ]]  # exists OR is a symbolic link
+[[ ! -e "$file" ]]               # does NOT exist</code></pre>
+      <p>In Bash, <code>&amp;&amp;</code> means AND, <code>||</code> means OR, and <code>!</code> means NOT.</p>
+
+      <h2>6. Repeat a step</h2>
+      <p>Use a <code>for</code> loop to handle several paths:</p>
+      <pre><code>for file in "$@"; do
+    printf 'Checking: %s\n' "$file"
+done</code></pre>
+      <p>The loop takes each argument in turn, puts it in <code>file</code>, and runs the commands between <code>do</code> and <code>done</code>.</p>
+      <p>Use <code>continue</code> to skip to the next item. Use <code>break</code> to stop the loop.</p>
+      <p>Read a file one line at a time:</p>
+      <pre><code>while IFS= read -r line || [[ -n "$line" ]]; do
+    printf '%s\n' "$line"
+done &lt; "$file"</code></pre>
+      <p><code>read -r</code> reads a line without treating backslashes specially. The redirection <code>&lt; "$file"</code> supplies the file as input to the loop.</p>
+
+      <h2>7. Save the output of a command</h2>
+      <p>Use <code>$(...)</code> to run a command and store its output:</p>
+      <pre><code>line_count=$(wc -l &lt; "$file")
+printf 'Lines: %s\n' "$line_count"</code></pre>
+      <p><code>wc -l</code> counts newline characters. A final line without a newline is not counted by this command.</p>
+      <p>Check whether a command succeeded with <code>if</code>:</p>
+      <pre><code>if line_count=$(wc -l &lt; "$file"); then
+    printf 'Lines: %s\n' "$line_count"
+else
+    printf 'Could not count lines.\n' &gt;&amp;2
+fi</code></pre>
+      <p>Commands return a status: <code>0</code> usually means success; a non-zero number means a problem or a special result.</p>
+
+      <h2>8. Connect tools</h2>
+      <p>Bash can send one tool's output into another tool with a pipe:</p>
+      <pre><code>grep -i 'error' "$file" | wc -l</code></pre>
+      <p>This searches for lines containing “error” and counts the matching lines.</p>
+      <p>More useful searches:</p>
+      <pre><code>grep -n 'failed password' "$file"        # show line numbers
+grep -i 'error' "$file"                  # ignore letter case
+grep -E 'denied|failure|invalid' "$file" # match any listed word</code></pre>
+
+      <h2>9. Reuse a set of steps</h2>
+      <p>Put a repeated action in a function:</p>
+      <pre><code>is_readable_file() {
+    local path=$1
+    [[ -f "$path" &amp;&amp; -r "$path" ]]
+}
+
+if is_readable_file "$file"; then
+    printf 'Ready to read.\n'
+fi</code></pre>
+      <p><code>local</code> keeps <code>path</code> inside the function. A function returns the status of its last command; here that is the file test.</p>
+
+      <h2>10. Debug a script</h2>
+      <p>Trace commands as Bash runs them:</p>
+      <pre><code>set -x       # turn tracing on
+# run the commands you are investigating
+set +x       # turn tracing off</code></pre>
+      <p>The trace shows expanded values and commands. It can reveal mistakes such as assigning <code>ile=...</code> and later using <code>$file</code>.</p>
+      <p>Other useful checks:</p>
+      <pre><code>type wc                   # what kind of command is this?
+printf 'status=%s\n' "$?"  # status from the command just run
+bash -x my_script.sh      # run a script with tracing</code></pre>
+      <p>Use <code>$?</code> immediately; every new command changes it. Traces can expose sensitive paths or arguments, so inspect them before sharing.</p>
+
+      <h2>11. Complete example: count a log file</h2>
+      <pre><code>#!/usr/bin/env bash
+
+if [[ $# -ne 1 ]]; then
+    printf 'Usage: %s LOGFILE\n' "$0" &gt;&amp;2
+    exit 2
+fi
+
+file=$1
+
+if [[ ! -e "$file" ]]; then
+    printf "File doesn't exist: %s\n" "$file" &gt;&amp;2
+    exit 1
+elif [[ ! -f "$file" ]]; then
+    printf 'Not a regular file: %s\n' "$file" &gt;&amp;2
+    exit 1
+elif [[ ! -r "$file" ]]; then
+    printf 'File is not readable: %s\n' "$file" &gt;&amp;2
+    exit 1
+fi
+
+line_count=$(wc -l &lt; "$file")
+printf 'Lines: %s\n' "$line_count"</code></pre>
+      <p>Try one normal path, one missing path, and one directory. Predict what each run should do before you run it.</p>
+
+      <h2>Pattern index</h2>
+      <table>
+        <thead>
+          <tr><th>I want to...</th><th>Start with...</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Store a value</td><td><code>name=value</code></td></tr>
+          <tr><td>Use a value</td><td><code>"$name"</code></td></tr>
+          <tr><td>Check a condition</td><td><code>if [[ test ]]; then ... fi</code></td></tr>
+          <tr><td>Check a file</td><td><code>[[ -f "$path" ]]</code></td></tr>
+          <tr><td>Repeat over inputs</td><td><code>for item in "$@"; do ... done</code></td></tr>
+          <tr><td>Read lines</td><td><code>while IFS= read -r line; do ... done</code></td></tr>
+          <tr><td>Capture output</td><td><code>value=$(command)</code></td></tr>
+          <tr><td>Search text</td><td><code>grep pattern file</code></td></tr>
+          <tr><td>Debug expansions</td><td><code>set -x</code></td></tr>
+          <tr><td>Find help</td><td><code>help name</code>, <code>type name</code>, <code>man command</code></td></tr>
+        </tbody>
+      </table>
+    </article>
+  </div>
+</body>
+</html>
