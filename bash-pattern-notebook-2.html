@@ -1,0 +1,932 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bash Pattern Notebook 2: Grass Roots - Hardcore Blue</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="article-top">
+    <a href="index.html">HARDCORE BLUE</a>
+    <a href="index.html">← Home</a>
+  </div>
+
+  <div class="article-shell">
+    <div class="article-meta">Field and programming notes</div>
+    <article>
+      <h1>Bash Pattern Notebook 2: Grass Roots</h1>
+      <p><strong>by j4ck13</strong></p>
+      <p>A guide for learning Bash from the ground up. The aim is to hold the shape of the language in your head (patterns, builtins and control flow) so you can write small OS programs from memory. Read one part, close it, then rewrite its patterns from memory in a scratch file.</p>
+
+<h2>Part 1: The Mental Model (5 rules)</h2>
+<ol>
+<li><strong>Everything is a command.</strong> A line is <code>command arg1 arg2</code>. Even <code>[</code> and <code>echo</code> are commands.</li>
+<li><strong>Exit status is truth.</strong> <code>0</code> = success = true. Anything else = failure = false. <code>if</code>, <code>while</code>, <code>&amp;&amp;</code>, <code>||</code> all just read the exit status.</li>
+<li><strong>Bash rewrites your line before running it</strong> (expansion), then splits it into words, then runs it.</li>
+<li><strong>Unquoted variables get word-split and globbed.</strong> Always write <code>"$var"</code>.</li>
+<li><strong>Data flows through three streams:</strong> <code>0</code> stdin, <code>1</code> stdout, <code>2</code> stderr. Pipes and redirects just rewire them.</li>
+</ol>
+<p>Order of expansion (rough): brace <code>{a,b}</code> → tilde <code>~</code> → <code>$var</code> / <code>$(cmd)</code> / <code>$((math))</code> → word splitting → globbing <code>*</code> → quote removal.</p>
+<h3>Quoting in one table</h3>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"..."</code></td>
+<td>expands <code>$var</code>, <code>$(cmd)</code>; no splitting. <strong>Default choice.</strong></td>
+</tr>
+<tr>
+<td><code>'...'</code></td>
+<td>fully literal. Nothing expands.</td>
+</tr>
+<tr>
+<td><code>\x</code></td>
+<td>escape one character</td>
+</tr>
+<tr>
+<td><code>$'a\tb'</code></td>
+<td>ANSI-C quoting (tabs, newlines)</td>
+</tr>
+</tbody>
+</table>
+<h3>Exit status cheat codes</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>success</td>
+</tr>
+<tr>
+<td>1</td>
+<td>general failure</td>
+</tr>
+<tr>
+<td>2</td>
+<td>misuse of a command</td>
+</tr>
+<tr>
+<td>126</td>
+<td>found but not executable</td>
+</tr>
+<tr>
+<td>127</td>
+<td>command not found</td>
+</tr>
+<tr>
+<td>128+n</td>
+<td>killed by signal n (130 = Ctrl-C)</td>
+</tr>
+</tbody>
+</table>
+<p>Read the last status with <code>$?</code>.</p>
+<h2>Part 2: Script Skeleton</h2>
+<pre><code>#!/usr/bin/env bash
+set -euo pipefail          # strict mode (see traps below)
+
+usage() {
+    echo &quot;Usage: ${0##*/} &lt;arg&gt;&quot; &gt;&amp;2
+    exit 1
+}
+
+main() {
+    [[ $# -ge 1 ]] || usage
+    local target=$1
+    echo &quot;Working on: $target&quot;
+}
+
+main &quot;$@&quot;
+</code></pre>
+<p>Run it: <code>chmod +x script.sh &amp;&amp; ./script.sh arg</code></p>
+<p><strong>Strict mode, decoded:</strong></p>
+<ul>
+<li><code>set -e</code> exit when a command fails</li>
+<li><code>set -u</code> error on unset variables</li>
+<li><code>set -o pipefail</code> a pipeline fails if any stage fails</li>
+</ul>
+<h2>Part 3: Builtins vs Keywords vs External Commands</h2>
+<p>Three kinds of "words" at the start of a line:</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Examples</th>
+<th>Lives in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Keyword</strong></td>
+<td><code>if then else fi for while do done case esac function [[ ]] (( ))</code></td>
+<td>the bash grammar itself</td>
+</tr>
+<tr>
+<td><strong>Builtin</strong></td>
+<td><code>cd echo read printf test [ declare local trap</code></td>
+<td>inside the bash process</td>
+</tr>
+<tr>
+<td><strong>External</strong></td>
+<td><code>ls grep sed awk find date sleep cat</code></td>
+<td>a file on disk (<code>/usr/bin/...</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Why builtins matter: they are fast (no new process), and some <strong>must</strong> be builtins because they change the shell itself (<code>cd</code>, <code>export</code>, <code>exit</code>, <code>source</code>).</p>
+<h3>Explore the system yourself</h3>
+<pre><code>type ls            # what kind of thing is this?
+type -a echo       # show all versions (builtin AND /usr/bin/echo)
+help read          # built-in manual for a builtin
+compgen -b         # list all builtins
+compgen -k         # list all keywords
+</code></pre>
+<h3>The builtin map (by job)</h3>
+<p><strong>Move around and inspect</strong></p>
+<table>
+<thead>
+<tr>
+<th>Builtin</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cd</code> <code>pwd</code></td>
+<td>change / show directory</td>
+</tr>
+<tr>
+<td><code>pushd</code> <code>popd</code> <code>dirs</code></td>
+<td>directory stack (bookmark and return)</td>
+</tr>
+<tr>
+<td><code>type</code> <code>command</code> <code>hash</code> <code>help</code></td>
+<td>find out what a name is</td>
+</tr>
+<tr>
+<td><code>alias</code> <code>unalias</code></td>
+<td>shortcuts</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Input and output</strong></p>
+<table>
+<thead>
+<tr>
+<th>Builtin</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>echo</code></td>
+<td>print (simple)</td>
+</tr>
+<tr>
+<td><code>printf</code></td>
+<td>print with formatting (<strong>prefer this for anything tricky</strong>)</td>
+</tr>
+<tr>
+<td><code>read</code></td>
+<td>read input into variables</td>
+</tr>
+<tr>
+<td><code>mapfile</code> / <code>readarray</code></td>
+<td>read lines into an array</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variables and settings</strong></p>
+<table>
+<thead>
+<tr>
+<th>Builtin</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>declare</code> / <code>typeset</code></td>
+<td>create variable with attributes (<code>-i</code> int, <code>-a</code> array, <code>-A</code> assoc, <code>-r</code> readonly)</td>
+</tr>
+<tr>
+<td><code>local</code></td>
+<td>variable scoped to a function</td>
+</tr>
+<tr>
+<td><code>export</code></td>
+<td>pass variable to child processes</td>
+</tr>
+<tr>
+<td><code>readonly</code> <code>unset</code></td>
+<td>lock / remove</td>
+</tr>
+<tr>
+<td><code>set</code> <code>shopt</code></td>
+<td>change shell options</td>
+</tr>
+<tr>
+<td><code>shift</code></td>
+<td>drop <code>$1</code>, slide the rest down</td>
+</tr>
+<tr>
+<td><code>getopts</code></td>
+<td>parse <code>-v -o file</code> style options</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Testing and math</strong></p>
+<table>
+<thead>
+<tr>
+<th>Builtin</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test</code> / <code>[</code></td>
+<td>classic tests</td>
+</tr>
+<tr>
+<td><code>let</code></td>
+<td>arithmetic (<code>(( ))</code> is nicer)</td>
+</tr>
+<tr>
+<td><code>true</code> <code>false</code> <code>:</code></td>
+<td>do nothing, success / failure / success</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Flow control</strong></p>
+<table>
+<thead>
+<tr>
+<th>Builtin</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>break</code> <code>continue</code></td>
+<td>leave / skip loop iteration</td>
+</tr>
+<tr>
+<td><code>return</code></td>
+<td>leave a function with a status</td>
+</tr>
+<tr>
+<td><code>exit</code></td>
+<td>leave the script with a status</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Running things</strong></p>
+<table>
+<thead>
+<tr>
+<th>Builtin</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>source</code> / <code>.</code></td>
+<td>run a file inside the current shell</td>
+</tr>
+<tr>
+<td><code>eval</code></td>
+<td>run a string as code (avoid unless needed)</td>
+</tr>
+<tr>
+<td><code>exec</code></td>
+<td>replace the shell with a command</td>
+</tr>
+<tr>
+<td><code>builtin</code> <code>command</code></td>
+<td>bypass functions/aliases</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Processes and signals</strong></p>
+<table>
+<thead>
+<tr>
+<th>Builtin</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>jobs</code> <code>bg</code> <code>fg</code> <code>disown</code></td>
+<td>background job control</td>
+</tr>
+<tr>
+<td><code>wait</code></td>
+<td>wait for background jobs</td>
+</tr>
+<tr>
+<td><code>kill</code></td>
+<td>send a signal</td>
+</tr>
+<tr>
+<td><code>trap</code></td>
+<td>run code on a signal or on exit</td>
+</tr>
+<tr>
+<td><code>ulimit</code> <code>umask</code></td>
+<td>resource limits / default permissions</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Note: <code>ls</code>, <code>grep</code>, <code>sed</code>, <code>awk</code>, <code>find</code>, <code>date</code>, <code>sleep</code>, <code>mkdir</code>, <code>rm</code>, <code>cat</code> are <strong>not</strong> builtins. They are separate programs. Bash is the glue.</p>
+</blockquote>
+<h2>Part 4: Variables and Expansion Patterns</h2>
+<h3>Basics</h3>
+<pre><code>name=&quot;Jackie&quot;            # NO spaces around =
+echo &quot;$name&quot;
+echo &quot;${name}_backup&quot;    # braces when next to other text
+today=$(date +%F)        # command substitution
+total=$(( 5 + 3 ))       # arithmetic substitution
+</code></pre>
+<h3>Special parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Var</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$0</code></td>
+<td>script name</td>
+</tr>
+<tr>
+<td><code>$1 $2 ...</code></td>
+<td>positional arguments</td>
+</tr>
+<tr>
+<td><code>$#</code></td>
+<td>number of arguments</td>
+</tr>
+<tr>
+<td><code>"$@"</code></td>
+<td>all arguments, each kept separate (<strong>use this one</strong>)</td>
+</tr>
+<tr>
+<td><code>$*</code></td>
+<td>all arguments as one string</td>
+</tr>
+<tr>
+<td><code>$?</code></td>
+<td>last exit status</td>
+</tr>
+<tr>
+<td><code>$$</code></td>
+<td>this shell's PID</td>
+</tr>
+<tr>
+<td><code>$!</code></td>
+<td>PID of last background job</td>
+</tr>
+</tbody>
+</table>
+<h3>Parameter expansion (the string toolbox)</h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>${var:-default}</code></td>
+<td>use <code>default</code> if var unset/empty</td>
+</tr>
+<tr>
+<td><code>${var:=default}</code></td>
+<td>same, and also assign it</td>
+</tr>
+<tr>
+<td><code>${var:?message}</code></td>
+<td>error and exit if unset/empty</td>
+</tr>
+<tr>
+<td><code>${#var}</code></td>
+<td>length</td>
+</tr>
+<tr>
+<td><code>${var#pat}</code> / <code>${var##pat}</code></td>
+<td>strip shortest / longest match from the <strong>front</strong></td>
+</tr>
+<tr>
+<td><code>${var%pat}</code> / <code>${var%%pat}</code></td>
+<td>strip shortest / longest match from the <strong>back</strong></td>
+</tr>
+<tr>
+<td><code>${var/old/new}</code> / <code>${var//old/new}</code></td>
+<td>replace first / all</td>
+</tr>
+<tr>
+<td><code>${var^^}</code> / <code>${var,,}</code></td>
+<td>UPPER / lower case</td>
+</tr>
+<tr>
+<td><code>${var:2:5}</code></td>
+<td>substring (offset 2, length 5)</td>
+</tr>
+</tbody>
+</table>
+<p>Memory trick: <code>#</code> is on the left of the keyboard number row (front), <code>%</code> is on the right (back).</p>
+<p>Two you will use constantly:</p>
+<pre><code>file=&quot;/var/log/syslog.gz&quot;
+echo &quot;${file##*/}&quot;    # syslog.gz   (basename)
+echo &quot;${file%.*}&quot;     # /var/log/syslog   (strip extension)
+</code></pre>
+<h3>Arrays</h3>
+<pre><code>fruits=(apple banana cherry)
+echo &quot;${fruits[0]}&quot;        # apple
+echo &quot;${fruits[@]}&quot;        # all elements
+echo &quot;${#fruits[@]}&quot;       # count
+fruits+=(date)             # append
+for f in &quot;${fruits[@]}&quot;; do echo &quot;$f&quot;; done
+</code></pre>
+<h3>Associative arrays (key/value, bash 4+)</h3>
+<pre><code>declare -A age
+age[alice]=30
+age[bob]=25
+echo &quot;${age[alice]}&quot;
+for key in &quot;${!age[@]}&quot;; do echo &quot;$key is ${age[$key]}&quot;; done
+</code></pre>
+<h2>Part 5: Tests (the question-asking tools)</h2>
+<p>Prefer <code>[[ ... ]]</code> for strings and files, and <code>(( ... ))</code> for numbers.</p>
+<h3>File tests</h3>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>True when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-e f</code></td>
+<td>exists</td>
+</tr>
+<tr>
+<td><code>-f f</code></td>
+<td>regular file</td>
+</tr>
+<tr>
+<td><code>-d f</code></td>
+<td>directory</td>
+</tr>
+<tr>
+<td><code>-L f</code></td>
+<td>symlink</td>
+</tr>
+<tr>
+<td><code>-r f</code> <code>-w f</code> <code>-x f</code></td>
+<td>readable / writable / executable</td>
+</tr>
+<tr>
+<td><code>-s f</code></td>
+<td>exists and is not empty</td>
+</tr>
+<tr>
+<td><code>f1 -nt f2</code></td>
+<td>f1 is newer than f2</td>
+</tr>
+</tbody>
+</table>
+<h3>String tests</h3>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>True when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-z "$s"</code></td>
+<td>empty</td>
+</tr>
+<tr>
+<td><code>-n "$s"</code></td>
+<td>not empty</td>
+</tr>
+<tr>
+<td><code>[[ $a == $b ]]</code></td>
+<td>equal</td>
+</tr>
+<tr>
+<td><code>[[ $a != $b ]]</code></td>
+<td>not equal</td>
+</tr>
+<tr>
+<td><code>[[ $s == *.log ]]</code></td>
+<td>glob match (unquoted right side)</td>
+</tr>
+<tr>
+<td><code>[[ $s =~ ^[0-9]+$ ]]</code></td>
+<td>regex match (captures in <code>BASH_REMATCH</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3>Number tests</h3>
+<pre><code>(( count &gt; 5 ))          # preferred: reads like normal math
+(( a == b ))
+[[ $a -gt $b ]]          # old style: -eq -ne -lt -le -gt -ge
+</code></pre>
+<h3>Combining</h3>
+<pre><code>[[ -f $file &amp;&amp; -r $file ]]     # and
+[[ $a == x || $b == y ]]       # or
+[[ ! -d $dir ]]                # not
+</code></pre>
+<h3>Short-circuit idioms</h3>
+<pre><code>mkdir -p &quot;$dir&quot; &amp;&amp; cd &quot;$dir&quot;            # run second only if first worked
+[[ -f $cfg ]] || { echo &quot;no config&quot; &gt;&amp;2; exit 1; }   # guard clause
+</code></pre>
+<h2>Part 6: Control Flow (the five shapes)</h2>
+<h3>1. if / elif / else</h3>
+<pre><code>if [[ -d $path ]]; then
+    echo &quot;directory&quot;
+elif [[ -f $path ]]; then
+    echo &quot;file&quot;
+else
+    echo &quot;something else&quot;
+fi
+</code></pre>
+<p><code>if</code> accepts <strong>any command</strong>, not just tests:</p>
+<pre><code>if grep -q &quot;root&quot; /etc/passwd; then echo &quot;found root&quot;; fi
+</code></pre>
+<h3>2. case (pattern matching a value)</h3>
+<pre><code>case $answer in
+    y|Y|yes) echo &quot;confirmed&quot; ;;
+    n|N|no)  echo &quot;cancelled&quot; ;;
+    *)       echo &quot;unknown&quot; ;;
+esac
+</code></pre>
+<p>Each branch ends with <code>;;</code>. <code>*</code> is the default.</p>
+<h3>3. for (loop over a list)</h3>
+<pre><code>for f in *.log; do echo &quot;$f&quot;; done          # glob
+for n in {1..5}; do echo &quot;$n&quot;; done         # range
+for item in &quot;${array[@]}&quot;; do echo &quot;$item&quot;; done
+for ((i = 0; i &lt; 5; i++)); do echo &quot;$i&quot;; done   # C style
+</code></pre>
+<h3>4. while / until (loop on a condition)</h3>
+<pre><code>while (( count &lt; 5 )); do
+    echo &quot;$count&quot;
+    (( count++ ))
+done
+
+until ping -c1 -W1 8.8.8.8 &amp;&gt;/dev/null; do
+    echo &quot;waiting for network...&quot;; sleep 2
+done
+</code></pre>
+<p><strong>The most important loop in bash: read a file line by line</strong></p>
+<pre><code>while IFS= read -r line; do
+    echo &quot;Line: $line&quot;
+done &lt; input.txt
+</code></pre>
+<ul>
+<li><code>IFS=</code> keeps leading/trailing spaces</li>
+<li><code>-r</code> stops backslash mangling</li>
+<li><code>&lt; input.txt</code> feeds the loop (no pipe, so variables survive)</li>
+</ul>
+<h3>5. select (instant menu)</h3>
+<pre><code>PS3=&quot;Choose: &quot;
+select choice in status disk quit; do
+    case $choice in
+        status) uptime ;;
+        disk)   df -h ;;
+        quit)   break ;;
+        *)      echo &quot;invalid&quot; ;;
+    esac
+done
+</code></pre>
+<h3>Loop controls</h3>
+<p><code>break</code> leaves the loop. <code>continue</code> jumps to the next iteration.</p>
+<h2>Part 7: Functions</h2>
+<pre><code>log() {
+    local level=$1; shift
+    printf '[%s] %s: %s\n' &quot;$(date +%T)&quot; &quot;$level&quot; &quot;$*&quot;
+}
+
+is_root() {
+    (( EUID == 0 ))        # status of last command becomes the return value
+}
+
+log INFO &quot;starting&quot;
+if is_root; then log INFO &quot;running as root&quot;; fi
+</code></pre>
+<p>Rules:</p>
+<ul>
+<li>Arguments are <code>$1 $2 ... "$@"</code> <strong>inside</strong> the function.</li>
+<li>Use <code>local</code> for every variable you create inside.</li>
+<li><code>return</code> only gives a <strong>status (0-255)</strong>, not data.</li>
+<li>To return <strong>data</strong>, print it and capture it: <code>result=$(my_func arg)</code>.</li>
+</ul>
+<h2>Part 8: Input, Output and Redirection</h2>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cmd &gt; file</code></td>
+<td>stdout to file (overwrite)</td>
+</tr>
+<tr>
+<td><code>cmd &gt;&gt; file</code></td>
+<td>stdout to file (append)</td>
+</tr>
+<tr>
+<td><code>cmd &lt; file</code></td>
+<td>file into stdin</td>
+</tr>
+<tr>
+<td><code>cmd 2&gt; err.txt</code></td>
+<td>stderr to file</td>
+</tr>
+<tr>
+<td><code>cmd &gt; out 2&gt;&amp;1</code></td>
+<td>stdout and stderr to same file</td>
+</tr>
+<tr>
+<td><code>cmd &amp;&gt; file</code></td>
+<td>same, shorthand</td>
+</tr>
+<tr>
+<td><code>cmd &gt; /dev/null 2&gt;&amp;1</code></td>
+<td>throw all output away</td>
+</tr>
+<tr>
+<td><code>cmd1 | cmd2</code></td>
+<td>pipe stdout of 1 into stdin of 2</td>
+</tr>
+<tr>
+<td><code>echo "msg" &gt;&amp;2</code></td>
+<td>print to stderr (errors go here)</td>
+</tr>
+</tbody>
+</table>
+<h3>Here-doc and here-string</h3>
+<pre><code>cat &lt;&lt;EOF
+Host: $(hostname)
+Date: $(date)
+EOF
+
+grep -c &quot;error&quot; &lt;&lt;&lt; &quot;$text&quot;      # feed a string as stdin
+</code></pre>
+<h3>Process substitution</h3>
+<pre><code>diff &lt;(sort a.txt) &lt;(sort b.txt)       # treat command output as a file
+</code></pre>
+<h3>read patterns</h3>
+<pre><code>read -r -p &quot;Your name: &quot; name              # prompt
+read -r -s -p &quot;Password: &quot; pw; echo        # silent
+read -r -n1 -p &quot;Continue? [y/n] &quot; yn       # single key
+read -r first rest &lt;&lt;&lt; &quot;hello big world&quot;  # split into variables
+mapfile -t lines &lt; file.txt                # whole file into array
+</code></pre>
+<h3>printf (use it instead of echo for formatting)</h3>
+<pre><code>printf '%s\n' &quot;text&quot;                  # string
+printf '%-15s %5d\n' &quot;$name&quot; &quot;$num&quot;   # left-pad string, right-align number
+printf '%.2f\n' 3.14159               # 3.14
+</code></pre>
+<h2>Part 9: Arguments, Options and Cleanup</h2>
+<h3>Positional arguments</h3>
+<pre><code>[[ $# -eq 2 ]] || { echo &quot;Usage: $0 src dst&quot; &gt;&amp;2; exit 1; }
+src=$1
+dst=$2
+</code></pre>
+<h3>Process all arguments</h3>
+<pre><code>while (( $# &gt; 0 )); do
+    echo &quot;Arg: $1&quot;
+    shift
+done
+</code></pre>
+<h3>getopts (flags like <code>-v -o file</code>)</h3>
+<pre><code>verbose=0; out=&quot;&quot;
+while getopts &quot;:vo:h&quot; opt; do
+    case $opt in
+        v)  verbose=1 ;;
+        o)  out=$OPTARG ;;
+        h)  usage ;;
+        :)  echo &quot;-$OPTARG needs a value&quot; &gt;&amp;2; exit 1 ;;
+        \?) echo &quot;Unknown option: -$OPTARG&quot; &gt;&amp;2; exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))     # remaining args are now $1, $2...
+</code></pre>
+<p>A colon after a letter (<code>o:</code>) means that option takes a value.</p>
+<h3>trap (always clean up)</h3>
+<pre><code>tmp=$(mktemp)
+trap 'rm -f &quot;$tmp&quot;' EXIT          # runs however the script ends
+trap 'echo &quot;interrupted&quot;; exit 130' INT
+</code></pre>
+<h2>Part 10: Pattern Recipes (copy, then rewrite from memory)</h2>
+<p><strong>Confirm before doing something dangerous</strong></p>
+<pre><code>read -r -p &quot;Delete $dir? [y/N] &quot; ans
+[[ $ans == [yY] ]] || exit 0
+</code></pre>
+<p><strong>Retry a command</strong></p>
+<pre><code>for attempt in {1..5}; do
+    if some_command; then break; fi
+    echo &quot;attempt $attempt failed&quot; &gt;&amp;2
+    sleep 2
+done
+</code></pre>
+<p><strong>Check a tool exists</strong></p>
+<pre><code>command -v jq &gt;/dev/null || { echo &quot;jq is required&quot; &gt;&amp;2; exit 1; }
+</code></pre>
+<p><strong>Timestamped filename</strong></p>
+<pre><code>backup=&quot;backup_$(date +%Y%m%d_%H%M%S).tar.gz&quot;
+</code></pre>
+<p><strong>Loop over files safely (spaces in names)</strong></p>
+<pre><code>find . -type f -name '*.log' -print0 |
+while IFS= read -r -d '' f; do
+    echo &quot;Found: $f&quot;
+done
+</code></pre>
+<p><strong>Count things (associative array tally)</strong></p>
+<pre><code>declare -A seen
+for word in apple pear apple fig apple; do
+    (( seen[$word]++ )) || true
+done
+</code></pre>
+<p><strong>Default argument</strong></p>
+<pre><code>dir=${1:-.}          # use $1, or current directory
+</code></pre>
+<p><strong>Run only as root</strong></p>
+<pre><code>(( EUID == 0 )) || { echo &quot;run as root&quot; &gt;&amp;2; exit 1; }
+</code></pre>
+<h2>Part 11: Three Mini Programs</h2>
+<h3>1. Disk space warning</h3>
+<pre><code>#!/usr/bin/env bash
+set -euo pipefail
+threshold=${1:-80}
+
+df -P | tail -n +2 | while read -r fs size used avail pct mount; do
+    use=${pct%\%}
+    if (( use &gt;= threshold )); then
+        printf '%-20s %s%% used\n' &quot;$mount&quot; &quot;$use&quot;
+    fi
+done
+</code></pre>
+<p><em>Uses: default arg, pipe into <code>while read</code>, parameter expansion, <code>(( ))</code>, <code>printf</code>.</em></p>
+<h3>2. Evidence hash manifest</h3>
+<pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+usage() { echo &quot;Usage: ${0##*/} &lt;directory&gt;&quot; &gt;&amp;2; exit 1; }
+[[ $# -eq 1 ]] || usage
+dir=$1
+[[ -d $dir ]] || { echo &quot;Not a directory: $dir&quot; &gt;&amp;2; exit 1; }
+
+# write the manifest OUTSIDE the directory being hashed
+out=&quot;/tmp/manifest_$(date +%Y%m%d_%H%M%S).sha256&quot;
+find &quot;$dir&quot; -type f -print0 | sort -z | xargs -0 sha256sum &gt; &quot;$out&quot;
+printf 'Hashed %d files -&gt; %s\n' &quot;$(wc -l &lt; &quot;$out&quot;)&quot; &quot;$out&quot;
+</code></pre>
+<p><em>Uses: guard clauses, <code>$(...)</code>, null-safe <code>find</code>, redirection. Verify later with <code>sha256sum -c manifest.sha256</code>.</em></p>
+<h3>3. Failed login tally</h3>
+<pre><code>#!/usr/bin/env bash
+set -euo pipefail
+
+log=${1:-/var/log/auth.log}
+[[ -r $log ]] || { echo &quot;Cannot read $log&quot; &gt;&amp;2; exit 1; }
+
+re='Failed password.*from ([0-9.]+)'
+declare -A count
+
+while IFS= read -r line; do
+    if [[ $line =~ $re ]]; then
+        ip=${BASH_REMATCH[1]}
+        (( count[$ip]++ )) || true
+    fi
+done &lt; &quot;$log&quot;
+
+for ip in &quot;${!count[@]}&quot;; do
+    printf '%6d  %s\n' &quot;${count[$ip]}&quot; &quot;$ip&quot;
+done | sort -rn
+</code></pre>
+<p><em>Uses: regex capture, associative array, read loop, pipe to sort.</em></p>
+<h2>Part 12: Traps and Gotchas</h2>
+<table>
+<thead>
+<tr>
+<th>Gotcha</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x = 5</code> fails</td>
+<td>no spaces: <code>x=5</code></td>
+</tr>
+<tr>
+<td><code>[ $a == $b ]</code> breaks on empty/spaces</td>
+<td>use <code>[[ ... ]]</code> and quote: <code>"$a"</code></td>
+</tr>
+<tr>
+<td><code>rm $file</code> with spaces in the name</td>
+<td><code>rm "$file"</code></td>
+</tr>
+<tr>
+<td><code>cmd | while read</code> loses variables set inside</td>
+<td>feed from a file or <code>&lt; &lt;(cmd)</code> instead</td>
+</tr>
+<tr>
+<td><code>(( n++ ))</code> returns failure when n was 0, which kills a <code>set -e</code> script</td>
+<td><code>(( n++ )) || true</code>, or use <code>n=$(( n + 1 ))</code></td>
+</tr>
+<tr>
+<td><code>for f in $(ls)</code></td>
+<td><code>for f in *</code></td>
+</tr>
+<tr>
+<td><code>echo</code> behaves differently with <code>-n</code>/<code>-e</code> across systems</td>
+<td><code>printf</code></td>
+</tr>
+<tr>
+<td><code>function</code> inside a pipeline runs in a subshell</td>
+<td>variables set there do not survive</td>
+</tr>
+<tr>
+<td><code>set -e</code> is not a full safety net (ignored inside <code>if</code> tests, <code>||</code> chains)</td>
+<td>still check critical commands explicitly</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Debug mode:</strong> run <code>bash -x script.sh</code> to see every command as it executes, or add <code>set -x</code> / <code>set +x</code> around a section.</p>
+<p><strong>Lint it:</strong> <code>shellcheck script.sh</code> catches most of the table above automatically.</p>
+<h2>Part 13: One-Page Cheat Sheet</h2>
+<pre><code>SHAPE                      SYNTAX
+─────────────────────────────────────────────────────────────
+shebang                    #!/usr/bin/env bash
+strict mode                set -euo pipefail
+variable                   x=5            &quot;$x&quot;   &quot;${x}&quot;
+command output             $(cmd)
+math                       $(( a + b ))   (( a &lt; b ))
+if                         if [[ test ]]; then ...; elif ...; else ...; fi
+case                       case $v in a|b) ...;; *) ...;; esac
+for list                   for x in a b c; do ...; done
+for C-style                for ((i=0;i&lt;n;i++)); do ...; done
+while                      while cond; do ...; done
+read lines                 while IFS= read -r l; do ...; done &lt; file
+function                   name() { local x=$1; ...; }
+args                       $1 $2  &quot;$@&quot;  $#  shift
+default                    ${v:-fallback}
+strip front / back         ${v##*/}   ${v%.*}
+test file                  -e -f -d -r -w -x -s
+test string                -z -n == != =~
+and / or                   &amp;&amp;  ||
+redirect                   &gt; &gt;&gt; &lt; 2&gt; 2&gt;&amp;1 &amp;&gt;
+cleanup                    trap 'cmd' EXIT
+</code></pre>
+<h2>Part 14: Recall Drills</h2>
+<p>Do these <strong>without looking</strong>. Check afterwards, then repeat the ones you missed a day later.</p>
+<p><strong>Level 1: shapes</strong>
+1. Write the script skeleton with shebang, strict mode and a <code>usage</code> function.
+2. Write an <code>if / elif / else</code> that tells you if a path is a file, directory or missing.
+3. Write a <code>case</code> that accepts <code>start</code>, <code>stop</code>, <code>status</code> and complains about anything else.
+4. Write a <code>for</code> loop over <code>*.txt</code> that prints each name and its line count.</p>
+<p><strong>Level 2: patterns</strong>
+5. Read a file line by line and print only lines containing "error".
+6. Write a function <code>confirm "question"</code> that returns success only if the user types <code>y</code>.
+7. Strip the extension from a filename and add <code>.bak</code>, using parameter expansion only.
+8. Count how many times each word appears in a list, using an associative array.</p>
+<p><strong>Level 3: programs</strong>
+9. A script that takes a directory and prints the 5 largest files in it.
+10. A script that checks if a list of services are active and reports <code>OK</code> or <code>DOWN</code> for each.
+11. A script that backs up a folder to a timestamped <code>.tar.gz</code>, refusing to run if the folder does not exist.
+12. A menu with <code>select</code> offering: show date, show disk, show memory, quit.</p>
+<p><strong>Self-test question for every script you write:</strong>
+<em>What are my inputs? What can go wrong? What happens on failure? What gets cleaned up?</em></p>
+<h2>Where Next</h2>
+<ul>
+<li>Notebook 3 idea: text-processing pipelines (<code>grep</code>, <code>sed</code>, <code>awk</code>, <code>cut</code>, <code>sort</code>, <code>uniq</code>) and how they feed bash loops.</li>
+<li>Practice sites: <code>man bash</code> (search with <code>/</code>), <code>help &lt;builtin&gt;</code>, and write one small script a day.</li>
+</ul>
+    </article>
+  </div>
+</body>
+</html>
