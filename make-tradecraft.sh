@@ -74,6 +74,7 @@ fi
 cat <<'TAIL'
     </article>
   </div>
+<script data-goatcounter="https://hardcore-blue.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
 TAIL
