@@ -1,91 +1,94 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Metadata: what it is and why it matters | Hardcore Blue</title>
-  <meta name="description" content="What file metadata is, why it matters for pentesting and blue team work, and how my Python tool MetaClean reads and cleans it.">
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metadata: What It Is and Why It Matters - Hardcore Blue</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
-    <p><a href="index.html">&larr; Back to the blog</a></p>
+<div class="article-top">
+<a href="index.html">HARDCORE BLUE</a>
+<a href="index.html">← Home</a>
+</div>
 
-    <article>
-      <h1>Metadata: what it is and why it matters</h1>
+<div class="article-shell">
+<div class="article-meta">Articles</div>
 
-      <p>Metadata is data about a file, not the content itself. The photo is the content. The phone model, timestamp and GPS position stored inside it are the metadata.</p>
-      <p>Most people never look at it. That is why it is worth looking at.</p>
+<article>
+<h1>Metadata: What It Is and Why It Matters</h1>
 
-      <h2>Where it hides</h2>
-      <ul>
-        <li><strong>Images:</strong> EXIF tags such as camera or phone model, date and time, GPS coordinates, editing software</li>
-        <li><strong>PDFs:</strong> title, author, creator and producer software, creation and modification dates</li>
-        <li><strong>Office documents:</strong> author, last modified by, revision details</li>
-      </ul>
+<p>Metadata is data about a file, not the content itself. The photo is the content. The phone model, timestamp and GPS position stored inside it are the metadata.</p>
+<p>Most people never look at it. That is why it is worth looking at.</p>
 
-      <h2>Why it matters for pentesting</h2>
-      <p>In recon, public files are a free source of information. Documents a company publishes often carry more than it meant to share.</p>
-      <ul>
-        <li>Author fields give real names and hint at the username format</li>
-        <li>Creator and producer fields show what software was used, sometimes with versions</li>
-        <li>Folder paths and machine names can point at internal naming</li>
-        <li>Photos can reveal locations and devices</li>
-      </ul>
-      <p>None of this needs an exploit. It is just reading what was already given away.</p>
+<h2>Where It Hides</h2>
+<ul>
+<li><strong>Images:</strong> EXIF tags such as camera or phone model, date and time, GPS coordinates, editing software.</li>
+<li><strong>PDFs:</strong> title, author, creator and producer software, creation and modification dates.</li>
+<li><strong>Office documents:</strong> author, last modified by, revision details.</li>
+</ul>
 
-      <h2>Why it matters for the blue team</h2>
-      <ul>
-        <li><strong>Investigations:</strong> timestamps and tool fields help build a timeline and show where a file came from</li>
-        <li><strong>Spotting oddities:</strong> dates or software that do not fit the story of a file are worth a closer look</li>
-        <li><strong>Prevention:</strong> clean files before they leave the organisation, so you do not leak what an attacker would collect</li>
-      </ul>
-      <p>Same data, opposite uses. I wanted a tool that does both: read what a file gives away, then strip it before sharing.</p>
+<h2>Why It Matters for Pentesting</h2>
+<p>In recon, public files are a free source of information. Documents a company publishes often carry more than it meant to share.</p>
+<ul>
+<li>Author fields give real names and hint at the username format.</li>
+<li>Creator and producer fields show what software was used, sometimes with versions.</li>
+<li>Folder paths and machine names can point at internal naming.</li>
+<li>Photos can reveal locations and devices.</li>
+</ul>
+<p>None of this needs an exploit. It is just reading what was already given away.</p>
 
-      <h2>MetaClean</h2>
-      <p>MetaClean is a small Python command-line tool that inspects metadata in common images and PDFs and writes cleaned copies. The code is on GitHub: <a href="https://github.com/Hardcore-Blue/metaclean">github.com/Hardcore-Blue/metaclean</a>.</p>
+<h2>Why It Matters for the Blue Team</h2>
+<ul>
+<li><strong>Investigations:</strong> timestamps and tool fields help build a timeline and show where a file came from.</li>
+<li><strong>Spotting oddities:</strong> dates or software that do not fit the story of a file are worth a closer look.</li>
+<li><strong>Prevention:</strong> clean files before they leave the organisation, so you do not leak what an attacker would collect.</li>
+</ul>
+<p>Same data, opposite uses. I wanted a tool that does both: read what a file gives away, then strip it before sharing.</p>
+
+<h2>MetaClean</h2>
+<p>MetaClean is a small Python command-line tool that inspects metadata in common images and PDFs and writes cleaned copies. The code is on GitHub: <a href="https://github.com/Hardcore-Blue/metaclean" target="_blank">github.com/Hardcore-Blue/metaclean</a></p>
 
 <pre><code>metaclean inspect photo.jpg
 metaclean inspect ./documents --format json --output report.json
 metaclean clean photo.jpg --output cleaned/photo.jpg</code></pre>
 
-      <h3>Inspecting</h3>
-      <p>The <code>inspect</code> command checks the file extension and picks the matching reader. It uses <a href="https://python-pillow.org/">Pillow</a> for images and <a href="https://pypdf.readthedocs.io/">pypdf</a> for PDFs.</p>
-      <ul>
-        <li><strong>Images:</strong> format, dimensions, color mode, frame count, EXIF tags and image-container fields</li>
-        <li><strong>PDFs:</strong> page count, encryption status and document information fields such as title or author</li>
-        <li><strong>Output:</strong> readable text, or JSON or CSV reports</li>
-      </ul>
+<h3>Inspecting</h3>
+<p>The <code>inspect</code> command checks the file extension and picks the matching reader. It uses <a href="https://python-pillow.org/" target="_blank">Pillow</a> for images and <a href="https://pypdf.readthedocs.io/" target="_blank">pypdf</a> for PDFs.</p>
+<ul>
+<li><strong>Images:</strong> format, dimensions, color mode, frame count, EXIF tags and image-container fields.</li>
+<li><strong>PDFs:</strong> page count, encryption status and document information fields such as title or author.</li>
+<li><strong>Output:</strong> readable text, or JSON or CSV reports.</li>
+</ul>
 
-      <h3>Cleaning</h3>
-      <p>The <code>clean</code> command writes a new file and leaves the source untouched.</p>
-      <p>For images, it decodes the pixels and re-encodes them without EXIF, ICC profiles, comments or container metadata. It applies the EXIF orientation to the pixels first, so the image keeps its displayed rotation. Animated images are rejected to avoid dropping frames.</p>
-      <p>For PDFs, it copies the pages into a new PDF without the document information dictionary. Encrypted PDFs are rejected.</p>
+<h3>Cleaning</h3>
+<p>The <code>clean</code> command writes a new file and leaves the source untouched.</p>
+<p>For images, it decodes the pixels and re-encodes them without EXIF, ICC profiles, comments or container metadata. It applies the EXIF orientation to the pixels first, so the image keeps its displayed rotation. Animated images are rejected to avoid dropping frames.</p>
+<p>For PDFs, it copies the pages into a new PDF without the document information dictionary. Encrypted PDFs are rejected.</p>
 
-      <h3>Limits</h3>
-      <p>MetaClean is intentionally conservative. It skips existing output files unless you ask for overwriting, and it reports files it cannot process.</p>
-      <ul>
-        <li>It does not redact text or images on PDF pages</li>
-        <li>It cannot guarantee every possible metadata structure is removed</li>
-        <li>Re-encoding can change image size or color slightly</li>
-      </ul>
-      <p>Always inspect the cleaned copy before you share it. This is not a forensic sanitisation guarantee.</p>
+<h3>Limits</h3>
+<p>MetaClean is intentionally conservative. It skips existing output files unless you ask for overwriting, and it reports files it cannot process.</p>
+<ul>
+<li>It does not redact text or images on PDF pages.</li>
+<li>It cannot guarantee every possible metadata structure is removed.</li>
+<li>Re-encoding can change image size or color slightly.</li>
+</ul>
+<p class="note">Always inspect the cleaned copy before you share it. This is not a forensic sanitisation guarantee.</p>
 
-      <h2>Python techniques I used</h2>
-      <ul>
-        <li><strong>argparse:</strong> defines the <code>inspect</code> and <code>clean</code> commands, their options and the help text</li>
-        <li><strong>Small, focused functions:</strong> inspection, cleaning, file discovery and report writing live in <code>core.py</code>, and the CLI in <code>cli.py</code> ties them together</li>
-        <li><strong>Type hints:</strong> annotations like <code>Path</code>, <code>list[dict[str, Any]]</code> and <code>-&gt; int</code> document inputs and outputs</li>
-        <li><strong>pathlib:</strong> handles paths, extension checks, recursive searches and output locations</li>
-        <li><strong>Context managers:</strong> <code>with</code> blocks close image files and PDF output streams, even when an error occurs</li>
-        <li><strong>Defensive error handling:</strong> one bad file does not stop a batch scan, and exit codes tell scripts whether it worked</li>
-        <li><strong>Structured output:</strong> results are Python dictionaries, serialised with the <code>json</code> and <code>csv</code> modules</li>
-        <li><strong>Packaging:</strong> <code>pyproject.toml</code> declares dependencies and exposes <code>metaclean</code> as an installable command</li>
-      </ul>
-
-      <p>One design choice I like: inspection and cleaning are separate operations. That makes it easier to add more file formats later without tying every format to one large command function.</p>
-    </article>
-  </main>
+<h2>Python Techniques I Used</h2>
+<ul>
+<li><strong>argparse:</strong> defines the <code>inspect</code> and <code>clean</code> commands, their options and the help text.</li>
+<li><strong>Small, focused functions:</strong> inspection, cleaning, file discovery and report writing live in <code>core.py</code>, and the CLI in <code>cli.py</code> ties them together.</li>
+<li><strong>Type hints:</strong> annotations like <code>Path</code>, <code>list[dict[str, Any]]</code> and <code>-&gt; int</code> document inputs and outputs.</li>
+<li><strong>pathlib:</strong> handles paths, extension checks, recursive searches and output locations.</li>
+<li><strong>Context managers:</strong> <code>with</code> blocks close image files and PDF output streams, even when an error occurs.</li>
+<li><strong>Defensive error handling:</strong> one bad file does not stop a batch scan, and exit codes tell scripts whether it worked.</li>
+<li><strong>Structured output:</strong> results are Python dictionaries, serialised with the <code>json</code> and <code>csv</code> modules.</li>
+<li><strong>Packaging:</strong> <code>pyproject.toml</code> declares dependencies and exposes <code>metaclean</code> as an installable command.</li>
+</ul>
+<p>One design choice I like: inspection and cleaning are separate operations. That makes it easier to add more file formats later without tying every format to one large command function.</p>
+</article>
+</div>
 <script data-goatcounter="https://hardcore-blue.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
