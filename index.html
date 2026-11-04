@@ -10,7 +10,7 @@
 <div class="home-wrap">
 
 <header>
-<div class="hex-strip" id="hexstrip" aria-hidden="true"></div>
+<div class="hex-strip" id="hexstrip" aria-hidden="true">2B 0D A5 <span class="wake">57 61 6B 65 20 55 70</span> B8 7F 33 FF D1 32 89 E4 C8 3E D0 B3 6E 08 E6 79 A2 59 0D B1 7C 71 B8 EE 70 9D D7 FD 6F AC 7A 4C 91 0B E2 5D 38 C7 A4 16 F0 8B 3D 62 9E D5 47 1A BC 84 2F 95 C3 0E 76 D9 B2 4F A1 68 EA 13 9B 5C F7 2A D4 81 3B C6 60 AE 17 E9 4D 92 07 BA 5F 28</div>
 <h1 class="forensic-title" id="title">HARDCORE BLUE FORENSIC DEV</h1>
 <p class="tagline">Cybersecurity and forensic notes</p>
 <p class="welcome">Welcome to my personal blog and portfolio. </p>
@@ -76,7 +76,6 @@
     }
     return s;
   }
-  strip.textContent = randHex(120);
 
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -100,7 +99,6 @@
     }
   }, 45);
 
-  setInterval(function () { strip.textContent = randHex(120); }, 1500);
 })();
 </script>
 <script data-goatcounter="https://hardcore-blue.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>

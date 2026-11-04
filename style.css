@@ -75,3 +75,8 @@ details.pdf[open] summary{color:var(--bright)}
 .home-foot a{color:var(--muted)}
 .home-foot a:hover{color:var(--bright)}
 @media (max-width:800px){.home-wrap{padding-top:40px}.home-grid{grid-template-columns:1fr;gap:16px}.side{position:static;padding:24px 0 0;border-left:0;border-top:1px solid var(--line)}}
+
+.hex-strip .wake {
+  color: #5b8fe0;
+  text-shadow: 0 0 10px rgba(91, 143, 224, 0.55);
+}
