@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forensic Mindset and Workflow - Hardcore Blue</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="article-top">
+<a href="index.html">HARDCORE BLUE</a>
+<a href="index.html">← Home</a>
+</div>
+
+<div class="article-shell">
+<div class="article-meta">Articles</div>
+
+<article>
+<h1>Forensic Mindset and Workflow</h1>
+
+<p>Preserve everything. Change nothing.</p>
+
+<p>That is the whole job in two sentences. Everything else in this article is just how you stay true to it when a machine is on fire and everyone wants answers yesterday.</p>
+
+<p>Forensics is mostly simple OS and networking, done carefully. The tools are the easy part. The hard part is staying calm, staying methodical, and not fooling yourself.</p>
+
+<h2>The mindset</h2>
+
+<ul>
+<li><strong>Preserve first, investigate second.</strong> Evidence you alter is evidence you may lose.</li>
+<li><strong>Work on a copy.</strong> Examine the working image, never the original.</li>
+<li><strong>Think in timelines.</strong> Almost every case reduces to "what happened, in what order?"</li>
+<li><strong>Rule things out.</strong> Chip away everything that doesn't look like an elephant. Figure out all the ways it didn't happen.</li>
+<li><strong>You will always leave a footprint.</strong> Locard's exchange principle cuts both ways: the attacker leaves dots, and so do you. Minimise your own system modification and write down what you touched.</li>
+<li><strong>Evidence is not evident.</strong> It needs context before it means anything.</li>
+</ul>
+
+<p>Blue team's edge is simple. Every time red interacts with a target it leaves a dot, and blue can connect the dots before red knows it.</p>
+
+<h2>The scene comes first</h2>
+
+<p>Before any tool, look at the machine. Feel the chassis for heat. Check the LEDs. Photograph the scene immediately.</p>
+
+<ul>
+<li>Keep the session alive. Don't lock it, don't log out.</li>
+<li>Isolate the network (pull the cable or cut the switch port) so nothing more leaves. Containment should follow from the evidence, not from panic.</li>
+<li>Volatile data disappears first, so dump memory before you power anything down.</li>
+<li>Communicate out of band. If the attacker is in the mail system, don't plan the response over email.</li>
+<li>If the machine hibernated, RAM was written to <code>hiberfil.sys</code>. For a VM, suspend it and grab the <code>.vmem</code> file.</li>
+</ul>
+
+<p>Memory capture on Windows: FTK Imager, WinPMem, DumpIt, Magnet RAM Capture.</p>
+
+<pre><code>winpmem_mini_x64.exe C:\evidence\mem.raw</code></pre>
+
+<p>Disk next. Image it, hash it, and only ever mount the image read-only.</p>
+
+<pre><code>sudo dc3dd if=/dev/sdb of=evidence.dd hash=sha256 log=acquisition.log
+sha256sum evidence.dd
+mmls evidence.dd                 # find the partition offset
+fls -r -o 2048 evidence.dd       # list files, deleted ones marked with *</code></pre>
+
+<h2>The workflow</h2>
+
+<p>This is the loop I want to become second nature:</p>
+
+<p><strong>identify, static, unpack, dynamic, deep dive, memory, extract IOCs, turn them into detections.</strong></p>
+
+<p>Start with one known indicator and pull on that thread. A hash, a domain or an IP is enough to begin.</p>
+
+<h3>1. Identify and fingerprint</h3>
+
+<p>Same input always gives the same hash. Change one bit and the output changes completely (the avalanche effect), and you can't work backwards from a hash to the data. A hash is a fingerprint. Use it to track a sample, confirm you've seen it before, and share it as an IoC.</p>
+
+<pre><code>file sample.exe                  # extension spoofing shows up here
+sha256sum sample.exe
+Get-FileHash -Algorithm SHA256 .\sample.exe     # on Windows
+hexdump -C sample.exe | head</code></pre>
+
+<p>Attackers can change a file hash with a tiny modification, so go fuzzier:</p>
+
+<pre><code>ssdeep -pb *                     # fuzzy hashing (CTPH), match similar files
+python3 -c "import pefile; print(pefile.PE('sample.exe').get_imphash())"</code></pre>
+
+<p>Masquerading and extension tricks map to MITRE ATT&amp;CK <strong>T1036</strong>.</p>
+
+<h3>2. Static analysis</h3>
+
+<p>No execution yet. Look at strings, imports, exports and sections. You're hunting for embedded filenames, IPs and domains, registry paths, Windows API names and command-line arguments.</p>
+
+<pre><code>strings -a sample.exe | less
+floss sample.exe                 # recovers obfuscated strings</code></pre>
+
+<h3>3. Unpack</h3>
+
+<p>If the strings look like junk and the imports are tiny, it's probably packed (<strong>T1027.002</strong>). UPX is the common one.</p>
+
+<pre><code>upx -d -o unpacked.exe sample.exe
+strings -a unpacked.exe | less</code></pre>
+
+<h3>4. Dynamic analysis</h3>
+
+<p>Now run it, but only in an isolated lab VM. Sysmon sits at the centre of this: it records process creation, network connections and file writes. Add Process Monitor and Wireshark.</p>
+
+<p>Traffic analysis belongs here. My lesson learnt: <em>always inspect the network traffic.</em></p>
+
+<h3>5. Deep dive</h3>
+
+<p>When behaviour isn't enough, open it in a disassembler (Ghidra, Cutter, IDA) or step through it in a debugger like x64dbg. Understanding the PE format and its sections pays off here, and so does knowing how a call travels from user mode through <code>NTDLL.DLL</code> into the kernel. Malware often tries to climb from user mode to kernel mode.</p>
+
+<h2>Memory forensics</h2>
+
+<p>Memory is the live state of the machine at one moment: processes, network connections, loaded DLLs, handles, command history, credentials, injected code.</p>
+
+<p>I think of it like a privilege escalation, only blind. You are looking around a system you can't touch, through a snapshot.</p>
+
+<p>The SANS approach, in order:</p>
+
+<ul>
+<li>Identify and verify processes (look for odd names and wrong parents)</li>
+<li>Dig into DLLs and handles</li>
+<li>Review network activity</li>
+<li>Hunt for code injection (<strong>T1055</strong>, including process hollowing <strong>T1055.012</strong>)</li>
+<li>Look for rootkits (<strong>T1014</strong>)</li>
+<li>Dump the suspicious pieces for further analysis</li>
+</ul>
+
+<pre><code>vol -f mem.vmem windows.info
+vol -f mem.vmem windows.pslist
+vol -f mem.vmem windows.pstree               # find the parent process
+vol -f mem.vmem windows.cmdline
+vol -f mem.vmem windows.netscan
+vol -f mem.vmem windows.malfind              # injected code
+vol -f mem.vmem windows.dlllist --pid 1234
+vol -f mem.vmem windows.svcscan
+vol -f mem.vmem windows.registry.hivelist</code></pre>
+
+<p>Volatility 3 doesn't need a profile like version 2 did. <code>windows.info</code> works it out.</p>
+
+<p>The low-tech trick still works too: dump the memory image to text and grep it.</p>
+
+<pre><code>strings -a mem.vmem &gt; mem.txt
+strings -a -el mem.vmem &gt;&gt; mem.txt        # UTF-16 strings
+grep -i "powershell" mem.txt</code></pre>
+
+<h2>Windows artefacts: where it leaves dots</h2>
+
+<p>This is where the timeline gets built. Two groups matter most.</p>
+
+<p><strong>Execution artefacts</strong> tell you what ran:</p>
+
+<ul>
+<li>Prefetch: <code>C:\Windows\Prefetch</code></li>
+<li>Shimcache: <code>HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache</code></li>
+<li>Amcache: <code>C:\Windows\AppCompat\Programs\Amcache.hve</code></li>
+<li>UserAssist and RunMRU in the user's registry hive</li>
+<li>Jump Lists, LNK files, Recent Items</li>
+<li>Event logs: <code>C:\Windows\System32\winevt\Logs</code></li>
+<li>SRUM database: <code>C:\Windows\System32\sru</code></li>
+</ul>
+
+<p><strong>Persistence artefacts</strong> tell you how it stays:</p>
+
+<ul>
+<li>Run and RunOnce keys, Winlogon keys, Startup folders (<strong>T1547.001</strong>)</li>
+<li>Scheduled tasks in <code>C:\Windows\System32\Tasks</code> (<strong>T1053.005</strong>)</li>
+<li>Services in <code>HKLM\System\CurrentControlSet\Services</code> (<strong>T1543.003</strong>)</li>
+</ul>
+
+<pre><code>reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+schtasks /query /fo LIST /v
+autorunsc.exe -a * -c &gt; autoruns.csv            # Sysinternals</code></pre>
+
+<p>Rapid collection is KAPE's job, and Zimmerman's tools parse what it collects:</p>
+
+<pre><code>kape.exe --tsource C: --tdest D:\out --target !SANS_Triage
+PECmd.exe -d D:\out\C\Windows\Prefetch --csv D:\out\parsed</code></pre>
+
+<p>Don't forget the quiet places: the Recycle Bin, alternate data streams (<strong>T1564.004</strong>), shadow copies, and cleared logs (<strong>T1070.001</strong>). Deleted things often aren't gone.</p>
+
+<p>Then stitch everything together:</p>
+
+<pre><code>log2timeline.py --storage-file timeline.plaso evidence.dd
+psort.py -o l2tcsv -w timeline.csv timeline.plaso</code></pre>
+
+<h2>Think like the other side</h2>
+
+<p>A competent attacker doesn't talk to the victim from their own machine. Expect cheap disposable VPS boxes, compromised sites as redirectors, a command server hidden behind them, staging kept separate from exfiltration, and fast flux DNS (<strong>T1568.001</strong>). C2 traffic itself falls under <strong>T1071</strong>.</p>
+
+<p>That's why a single IP rarely tells the story. Follow the pattern instead.</p>
+
+<h2>Turn findings into detections</h2>
+
+<p>The investigation isn't finished until it makes the next one easier. Every IoC should become a detection. Ask: what's the signature?</p>
+
+<pre><code>rule Suspect_Sample_01
+{
+    strings:
+        $c2 = "c2.example.com" ascii wide
+    condition:
+        uint16(0) == 0x5A4D and $c2
+}</code></pre>
+
+<p>Run it with <code>yara -r rule.yar /path/to/scan</code>. YARA was created by Victor Alvarez at VirusTotal.</p>
+
+<h2>The psychology bit</h2>
+
+<p>Your own brain is the weakest tool in the kit.</p>
+
+<ul>
+<li><strong>Confirmation bias:</strong> you form a theory in the first ten minutes and start collecting only what supports it. Try to break your own theory. That's the rule-out mindset.</li>
+<li><strong>Anchoring:</strong> starting with one known indicator is useful, but don't let it become the whole case.</li>
+<li><strong>Urgency:</strong> the urge to act is strongest right when you should be most careful. Preserve first.</li>
+<li><strong>Hindsight:</strong> everything looks obvious once you know the ending. Write down what you knew at each step, so the report stays honest.</li>
+</ul>
+
+<p>Risk means more things can happen than will. Your job is to explain the past, and the only way to do that reliably is to rule out the alternatives.</p>
+
+<h2>Back to the core</h2>
+
+<p>Again and again the work returns to the same fundamentals: how the OS works and how networks talk. Sysinternals sits right at the front of that, so I'm building my toolkit around it.</p>
+
+<p>The current is deep, but the method is simple. Preserve, copy, timeline, rule out, repeat.</p>
+</article>
+</div>
+<script data-goatcounter="https://hardcore-blue.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
