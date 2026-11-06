@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Metadata: What It Is and Why It Matters - Hardcore Blue</title>
+<meta name="description" content="Metadata workflow for forensics and recon: types, common leaks, extraction commands, stripping your own metadata, and the MetaClean Python tool.">
+<title>Metadata Workflow: Extract and Strip - Hardcore Blue</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,77 +17,363 @@
 <div class="article-meta">Articles</div>
 
 <article>
-<h1>Metadata: What It Is and Why It Matters</h1>
+<h1>Metadata Workflow: Extract and Strip</h1>
 
-<p>Metadata is data about a file, not the content itself. The photo is the content. The phone model, timestamp and GPS position stored inside it are the metadata.</p>
-<p>Most people never look at it. That is why it is worth looking at.</p>
-
-<h2>Where It Hides</h2>
+<h2>1. Orientation</h2>
+<p><strong>Metadata is structured information that describes a file: what it is, who created or changed it, when, where, and with which tool.</strong></p>
+<p>It lives in three places:</p>
 <ul>
-<li><strong>Images:</strong> EXIF tags such as camera or phone model, date and time, GPS coordinates, editing software.</li>
-<li><strong>PDFs:</strong> title, author, creator and producer software, creation and modification dates.</li>
-<li><strong>Office documents:</strong> author, last modified by, revision details.</li>
+<li><strong>Inside the file:</strong> EXIF, XMP, document properties.</li>
+<li><strong>In the filesystem:</strong> timestamps, owner, permissions, path.</li>
+<li><strong>In transit:</strong> email headers, HTTP headers.</li>
+</ul>
+<p>Software writes most of it automatically. Users rarely see it. Anyone with the right tool can edit it.</p>
+<p>Example: the photo is the content. The phone model, capture time and GPS position stored in it are the metadata.</p>
+<p>Forensic value comes from four properties: provenance, attribution, timeline and integrity.</p>
+<p>The same data serves three jobs:</p>
+<ul>
+<li><strong>Forensics:</strong> build a timeline, link a file to a device or a person, spot tampering.</li>
+<li><strong>Recon:</strong> read what a target published by accident.</li>
+<li><strong>Hygiene:</strong> remove it from your own files before sharing.</li>
 </ul>
 
-<h2>Why It Matters for Pentesting</h2>
-<p>In recon, public files are a free source of information. Documents a company publishes often carry more than it meant to share.</p>
+<h3>Core workflow</h3>
+<ol>
+<li>Hash the original.</li>
+<li>Work on a copy.</li>
+<li>Identify the true file type.</li>
+<li>Extract embedded metadata.</li>
+<li>Extract filesystem metadata.</li>
+<li>Correlate and check for inconsistencies.</li>
+<li>Record tool, version, command and output.</li>
+</ol>
+
+<h3>Setup</h3>
+<pre><code>sha256sum evidence.jpg | tee evidence.jpg.sha256
+mkdir work &amp;&amp; cp -p evidence.jpg work/
+file work/evidence.jpg
+xxd work/evidence.jpg | head</code></pre>
+<p>Compare the magic bytes to the extension. A mismatch is a finding.</p>
+
+<h3>Rules</h3>
 <ul>
-<li>Author fields give real names and hint at the username format.</li>
-<li>Creator and producer fields show what software was used, sometimes with versions.</li>
-<li>Folder paths and machine names can point at internal naming.</li>
-<li>Photos can reveal locations and devices.</li>
+<li>Never edit the original.</li>
+<li>Log how each file reached you. Copying and moving change timestamps.</li>
+<li>Metadata is trivial to edit. Treat it as a lead. Corroborate it.</li>
+<li>Report observations first. Label inferences as inferences.</li>
 </ul>
-<p>None of this needs an exploit. It is just reading what was already given away.</p>
 
-<h2>Why It Matters for the Blue Team</h2>
+<h2>2. Types of Metadata</h2>
+
+<h3>Embedded metadata</h3>
+<p>Stored inside the file. Travels with it.</p>
 <ul>
-<li><strong>Investigations:</strong> timestamps and tool fields help build a timeline and show where a file came from.</li>
-<li><strong>Spotting oddities:</strong> dates or software that do not fit the story of a file are worth a closer look.</li>
-<li><strong>Prevention:</strong> clean files before they leave the organisation, so you do not leak what an attacker would collect.</li>
+<li><strong>EXIF:</strong> camera or phone make and model, serial number, capture time, GPS, lens, editing software.</li>
+<li><strong>XMP:</strong> XML packet. Edit history, tool names, document IDs. Found in images, PDFs and Office files.</li>
+<li><strong>IPTC:</strong> captions, credits, keywords. Common in press photos.</li>
+<li><strong>ICC profile:</strong> colour profile. Can name the device or software.</li>
+<li><strong>PDF info dictionary:</strong> title, author, creator, producer, creation and modification dates.</li>
+<li><strong>Office core and app properties:</strong> author, last modified by, revision count, template, company, application version.</li>
+<li><strong>Embedded thumbnails:</strong> may show the original frame before cropping.</li>
 </ul>
-<p>Same data, opposite uses. I wanted a tool that does both: read what a file gives away, then strip it before sharing.</p>
 
-<h2>MetaClean</h2>
-<p>MetaClean is a small Python command-line tool that inspects metadata in common images and PDFs and writes cleaned copies. The code is on GitHub: <a href="https://github.com/Hardcore-Blue/metaclean" target="_blank">github.com/Hardcore-Blue/metaclean</a></p>
+<h3>Filesystem metadata</h3>
+<p>Stored by the OS, outside the file. Lost or rewritten on copy, upload or download.</p>
+<ul>
+<li><strong>Modify (mtime):</strong> content last written.</li>
+<li><strong>Access (atime):</strong> last read. Often unreliable.</li>
+<li><strong>Change (ctime):</strong> inode last changed. Permissions, rename, move.</li>
+<li><strong>Birth (btime):</strong> creation time, where the filesystem records it.</li>
+<li>Owner, permissions, path.</li>
+</ul>
 
+<h3>Transport metadata</h3>
+<ul>
+<li><strong>Email headers:</strong> <code>Received</code>, <code>Message-ID</code>, <code>X-Mailer</code>, <code>X-Originating-IP</code>. Read <code>Received</code> lines bottom to top.</li>
+<li><strong>HTTP headers:</strong> <code>Server</code>, <code>Last-Modified</code>, <code>ETag</code>.</li>
+</ul>
+
+<h3>Extraction commands</h3>
+<pre><code># everything, grouped by source
+exiftool -a -u -G1 -s file
+
+# images: location and device
+exiftool -n -GPSLatitude -GPSLongitude -Make -Model -SerialNumber photo.jpg
+
+# embedded thumbnail
+exiftool -b -ThumbnailImage photo.jpg &gt; thumb.jpg
+
+# Office: raw XML properties
+unzip -l report.docx
+unzip -p report.docx docProps/core.xml | xmllint --format -
+unzip -p report.docx docProps/app.xml  | xmllint --format -
+unzip -p report.docx docProps/custom.xml | xmllint --format -
+
+# PDF
+pdfinfo -meta report.pdf
+exiftool -a -G1 -s report.pdf
+
+# filesystem
+stat file
+stat -c '%n | birth=%w | modify=%y | change=%z | access=%x' file</code></pre>
+
+<h2>3. ExifTool Workflow</h2>
+<p>ExifTool is the main tool. It reads and writes EXIF, XMP, IPTC, PDF, Office, audio and video metadata. Kali package: <code>libimage-exiftool-perl</code>.</p>
+<pre><code>exiftool -ver</code></pre>
+
+<h3>Read</h3>
+<pre><code>exiftool file                      # default view
+exiftool -a -u -G1 -s file         # all tags, duplicates, unknown tags, group names, tag names
+exiftool -n file                   # raw numeric values (GPS, orientation)
+exiftool -ee file                  # also extract embedded data (video tracks, documents)
+exiftool -b -ThumbnailImage file &gt; thumb.jpg
+exiftool -b -PreviewImage file   &gt; preview.jpg</code></pre>
+<ul>
+<li><code>-a</code> shows duplicate tags. The same tag can hold different values in different groups.</li>
+<li><code>-G1</code> shows which group each value came from (EXIF, XMP, IPTC, File).</li>
+<li>Conflicting values for one tag across groups are worth noting.</li>
+</ul>
+
+<h3>Select tags and fields</h3>
+<pre><code>exiftool -Make -Model -SerialNumber -Software photo.jpg
+exiftool -time:all -a -G1 -s file          # every timestamp in the file
+exiftool -gps:all -a -G1 -s photo.jpg
+exiftool -Author -Creator -Producer -Company -LastModifiedBy doc.docx</code></pre>
+
+<h3>Bulk and recursive</h3>
+<pre><code>exiftool -r -csv ./case &gt; case-meta.csv
+exiftool -r -json ./case &gt; case-meta.json
+exiftool -r -ext jpg -ext jpeg ./case          # restrict by extension
+exiftool -r -ext pdf -p '$FileName | $Author | $Producer | $CreateDate' ./case</code></pre>
+
+<h3>Filter</h3>
+<pre><code># files that contain GPS
+exiftool -r -if '$GPSLatitude' -p '$FileName $GPSPosition' ./case
+
+# files from one device
+exiftool -r -if '$Model eq "iPhone 13"' -p '$FileName' ./case
+
+# files edited in software
+exiftool -r -if '$Software' -p '$FileName | $Software' ./case</code></pre>
+
+<h3>Build a timeline</h3>
+<pre><code>exiftool -r -d '%Y-%m-%d %H:%M:%S' \
+  -p '$DateTimeOriginal | $Make $Model | $FileName' \
+  -ext jpg ./case | sort</code></pre>
+<ul>
+<li>Compare against filesystem times from <code>stat</code>.</li>
+<li>Check timezone tags: <code>OffsetTimeOriginal</code>, <code>TimeZone</code>.</li>
+</ul>
+
+<h3>Write and strip</h3>
+<p>Work on copies. ExifTool modifies files in place by default and leaves a <code>_original</code> backup.</p>
+<pre><code>exiftool -all= -o cleaned.jpg original.jpg           # strip all, new file
+exiftool -gps:all= -o nogps.jpg original.jpg          # strip GPS only
+exiftool -xmp:all= -o noxmp.jpg original.jpg          # strip XMP only
+exiftool -all= -tagsfromfile @ -Orientation -o out.jpg in.jpg   # strip all, keep orientation
+exiftool -P -overwrite_original -all= file.jpg        # in place, keep file modify time, no backup</code></pre>
+<ul>
+<li>PDF writes are incremental. Rewrite with <code>qpdf --linearize</code> afterwards.</li>
+<li>Always verify with a second read: <code>exiftool -a -G1 -s cleaned.jpg</code>.</li>
+</ul>
+
+<h2>4. Other Kali Tools</h2>
+<p>Built-in and packaged tools worth knowing.</p>
+<table>
+<tr><th>Tool</th><th>Use</th><th>Command</th></tr>
+<tr><td><code>file</code></td><td>True file type from magic bytes</td><td><code>file *</code></td></tr>
+<tr><td><code>xxd</code></td><td>Hex view, check headers and trailers</td><td><code>xxd file | head</code></td></tr>
+<tr><td><code>strings</code></td><td>Readable text. Paths, usernames, URLs</td><td><code>strings -a file</code> and <code>strings -el file</code> for UTF-16</td></tr>
+<tr><td><code>stat</code></td><td>Filesystem timestamps and inode</td><td><code>stat file</code></td></tr>
+<tr><td><code>find</code></td><td>Timestamps across a tree</td><td><code>find . -type f -printf '%TY-%Tm-%Td %TT %p\n' | sort</code></td></tr>
+<tr><td><code>sha256sum</code></td><td>Integrity</td><td><code>sha256sum -b file</code></td></tr>
+<tr><td><code>exiv2</code></td><td>Second opinion on EXIF, IPTC, XMP</td><td><code>exiv2 -pa photo.jpg</code></td></tr>
+<tr><td><code>identify</code> (ImageMagick)</td><td>Image properties and profiles</td><td><code>identify -verbose photo.jpg</code></td></tr>
+<tr><td><code>mat2</code></td><td>List and strip metadata</td><td><code>mat2 --show file</code> then <code>mat2 file</code></td></tr>
+<tr><td><code>pdfinfo</code></td><td>PDF info and XMP</td><td><code>pdfinfo -meta file.pdf</code></td></tr>
+<tr><td><code>pdfdetach</code></td><td>List embedded PDF attachments</td><td><code>pdfdetach -list file.pdf</code></td></tr>
+<tr><td><code>pdfimages</code></td><td>List images inside a PDF</td><td><code>pdfimages -list file.pdf</code></td></tr>
+<tr><td><code>pdfid</code>, <code>pdf-parser</code></td><td>PDF structure, JavaScript, embedded files, objects</td><td><code>pdfid file.pdf</code></td></tr>
+<tr><td><code>unzip</code>, <code>xmllint</code></td><td>Open Office packages and read the XML</td><td><code>unzip -p f.docx docProps/core.xml | xmllint --format -</code></td></tr>
+<tr><td><code>oleid</code>, <code>olemeta</code>, <code>olevba</code></td><td>Legacy Office (.doc, .xls): OLE properties and macros</td><td><code>olemeta file.doc</code></td></tr>
+<tr><td><code>ffprobe</code>, <code>mediainfo</code></td><td>Audio and video container metadata</td><td><code>ffprobe -show_format -show_streams file.mp4</code></td></tr>
+<tr><td><code>binwalk</code></td><td>Embedded files and appended data</td><td><code>binwalk file</code></td></tr>
+<tr><td><code>foremost</code>, <code>scalpel</code></td><td>Carve files out of images and unallocated space</td><td><code>foremost -i disk.dd -o out/</code></td></tr>
+<tr><td><code>fls</code>, <code>istat</code>, <code>mactime</code> (Sleuth Kit)</td><td>Filesystem timestamps from disk images</td><td><code>fls -r -m / disk.dd &gt; body.txt</code> then <code>mactime -b body.txt -d</code></td></tr>
+<tr><td><code>grep</code></td><td>Email headers</td><td><code>grep -i '^received:' mail.eml</code></td></tr>
+<tr><td><code>metagoofil</code></td><td>Search and download public documents from a domain</td><td><code>metagoofil -d target.example -t pdf,docx -o loot</code></td></tr>
+</table>
+<ul>
+<li>Cross-check with two tools. If they disagree, trust neither until you know why.</li>
+<li>Check <code>--help</code> on your install. Options differ between versions.</li>
+</ul>
+
+<h2>5. Common Metadata Leaks</h2>
+<table>
+<tr><th>Leak</th><th>Where</th><th>What it gives</th></tr>
+<tr><td>GPS coordinates</td><td>Photo EXIF</td><td>Exact location. Home, office, site.</td></tr>
+<tr><td>Device serial number</td><td>Photo EXIF</td><td>Links photos to one device.</td></tr>
+<tr><td>Author, last modified by</td><td>Office, PDF</td><td>Real names. Username format.</td></tr>
+<tr><td>Creator, producer, application version</td><td>PDF, Office</td><td>Software and version. Patch level hints.</td></tr>
+<tr><td>Internal paths and machine names</td><td>Office, PDF, XMP</td><td>Drive letters, share names, user profile folders.</td></tr>
+<tr><td>Printer name</td><td>Office, PDF</td><td>Internal print infrastructure.</td></tr>
+<tr><td>Tracked changes, comments, hidden text</td><td>Office</td><td>Deleted content and reviewer remarks.</td></tr>
+<tr><td>Old content after edits</td><td>PDF</td><td>Earlier revisions kept by incremental updates.</td></tr>
+<tr><td>Original thumbnail</td><td>Photo EXIF</td><td>Uncropped or unredacted frame.</td></tr>
+<tr><td>Mail server hops and IPs</td><td>Email headers</td><td>Internal hostnames and addresses.</td></tr>
+</table>
+
+<h3>Recon workflow</h3>
+<p>Authorised scope only.</p>
+<pre><code># collect public documents
+wget -r -l2 -np -A pdf,docx,xlsx,pptx,jpg https://target.example/
+
+# extract the useful fields in bulk
+exiftool -r -csv -ext pdf -ext docx -ext xlsx -ext pptx \
+  -Author -Creator -Producer -LastModifiedBy -Software -Company . &gt; meta.csv
+
+# unique author names and software
+cut -d, -f2- meta.csv | sort | uniq -c | sort -rn | head -30</code></pre>
+<ul>
+<li>Authors give a username convention to test.</li>
+<li>Software and versions give a target list for further checks.</li>
+<li>Paths give internal naming and structure.</li>
+</ul>
+
+<h3>Checking a PDF for hidden revisions</h3>
+<pre><code>grep -a -c '%%EOF' report.pdf</code></pre>
+<p>More than one match means the file was updated incrementally. Earlier versions of objects may still be in the file.</p>
+
+<h3>Forensic checks</h3>
+<ul>
+<li>Embedded capture time later than the file modify time: possible clock or timezone issue, or tampering.</li>
+<li>Editing software named in a "straight from camera" photo.</li>
+<li>Producer string does not match the claimed origin of a document.</li>
+<li>Identical metadata across files that claim different authors.</li>
+</ul>
+
+<h2>6. Getting Rid of Your Own Metadata</h2>
+<p>Strip, then verify. Never assume it worked.</p>
+
+<h3>Images</h3>
+<pre><code># write a stripped copy, keep the original untouched
+exiftool -all= -o cleaned.jpg original.jpg
+
+# verify
+exiftool -a -G1 -s cleaned.jpg
+
+# diff before and after
+exiftool -a -G1 -s original.jpg &gt; before.txt
+exiftool -a -G1 -s cleaned.jpg  &gt; after.txt
+diff before.txt after.txt</code></pre>
+
+<h3>PDFs</h3>
+<p>ExifTool writes PDF changes as an incremental update. The old values stay in the file and can be recovered. Rewrite the file after stripping.</p>
+<pre><code>exiftool -all= -o stripped.pdf original.pdf
+qpdf --linearize stripped.pdf cleaned.pdf
+grep -a -c '%%EOF' cleaned.pdf</code></pre>
+<p>Check the result with <code>pdfinfo -meta cleaned.pdf</code>.</p>
+
+<h3>Office documents</h3>
+<ul>
+<li>Use Inspect Document in the application. Remove comments, revisions, hidden text and personal information.</li>
+<li>Check the package after saving.</li>
+</ul>
+<pre><code>unzip -l cleaned.docx
+unzip -p cleaned.docx docProps/core.xml
+unzip -p cleaned.docx word/comments.xml</code></pre>
+<ul>
+<li>Safer option for sharing: export to PDF, then clean the PDF as above.</li>
+</ul>
+
+<h3>General-purpose tools</h3>
+<pre><code>mat2 --show file.docx      # list what mat2 sees
+mat2 file.docx             # writes file.cleaned.docx</code></pre>
+
+<h3>Habits</h3>
+<ul>
+<li>Turn off geotagging in the camera app.</li>
+<li>Screenshot instead of sharing the original image when only the picture matters. Check that the screenshot tool adds nothing.</li>
+<li>Do not rely on a platform to strip metadata for you.</li>
+<li>A cleaned copy gets new filesystem timestamps. The original times do not carry over. Account for this before sharing.</li>
+<li>Strip, then inspect with a different tool from the one that stripped.</li>
+</ul>
+
+<h2>7. MetaClean</h2>
+<p>MetaClean is a Python command-line tool. It inspects metadata in common images and PDFs and writes cleaned copies. Source: <a href="https://github.com/Hardcore-Blue/metaclean" target="_blank">github.com/Hardcore-Blue/metaclean</a></p>
+
+<h3>Usage</h3>
 <pre><code>metaclean inspect photo.jpg
+metaclean inspect ./documents --shallow
 metaclean inspect ./documents --format json --output report.json
-metaclean clean photo.jpg --output cleaned/photo.jpg</code></pre>
+metaclean inspect ./documents --format csv  --output report.csv
+metaclean clean photo.jpg -o cleaned/photo.jpg
+metaclean clean ./documents -o ./cleaned --overwrite</code></pre>
 
-<h3>Inspecting</h3>
-<p>The <code>inspect</code> command checks the file extension and picks the matching reader. It uses <a href="https://python-pillow.org/" target="_blank">Pillow</a> for images and <a href="https://pypdf.readthedocs.io/" target="_blank">pypdf</a> for PDFs.</p>
+<h3>Options</h3>
 <ul>
-<li><strong>Images:</strong> format, dimensions, color mode, frame count, EXIF tags and image-container fields.</li>
-<li><strong>PDFs:</strong> page count, encryption status and document information fields such as title or author.</li>
-<li><strong>Output:</strong> readable text, or JSON or CSV reports.</li>
+<li><code>inspect PATH</code>: <code>--shallow</code> skips subfolders. <code>--format text|json|csv</code>. <code>--output</code> saves a report. CSV requires <code>--output</code>.</li>
+<li><code>clean PATH</code>: <code>-o/--output</code> is required. File in, file out. Folder in, folder out with the same layout. <code>--shallow</code> skips subfolders. <code>--overwrite</code> replaces existing outputs.</li>
 </ul>
 
-<h3>Cleaning</h3>
-<p>The <code>clean</code> command writes a new file and leaves the source untouched.</p>
-<p>For images, it decodes the pixels and re-encodes them without EXIF, ICC profiles, comments or container metadata. It applies the EXIF orientation to the pixels first, so the image keeps its displayed rotation. Animated images are rejected to avoid dropping frames.</p>
-<p>For PDFs, it copies the pages into a new PDF without the document information dictionary. Encrypted PDFs are rejected.</p>
+<h3>Supported files</h3>
+<ul>
+<li>Images: JPG, JPEG, PNG, WebP, TIF, TIFF, BMP, GIF.</li>
+<li>PDF.</li>
+</ul>
+
+<h3>Exit codes</h3>
+<ul>
+<li><code>0</code>: success.</li>
+<li><code>1</code>: at least one file failed, was skipped, or no supported files were found.</li>
+<li><code>2</code>: path does not exist, or invalid options such as CSV without <code>--output</code>.</li>
+</ul>
+<p>Scripts can branch on these.</p>
+
+<h3>How inspect works</h3>
+<ol>
+<li><code>find_files</code> collects supported files by extension, recursively by default.</li>
+<li><code>inspect_file</code> picks the reader from the extension.</li>
+<li>Images use Pillow. Output: format, dimensions, mode, frame count, EXIF tags, container fields, ICC profile presence.</li>
+<li>PDFs use pypdf. Output: page count, encryption status, document information fields.</li>
+<li>Binary values are reported as <code>&lt;binary data: N bytes&gt;</code>.</li>
+<li>One failing file is recorded as an error record. The batch continues.</li>
+</ol>
+
+<h3>How clean works</h3>
+<p>The source is never modified. Output goes to a new path. Identical input and output paths are rejected.</p>
+<ul>
+<li><strong>Images:</strong> apply EXIF orientation to the pixels, then copy only the pixel data into a new image and save it. EXIF, ICC profiles, comments and container fields are not carried over. Animated images are rejected.</li>
+<li><strong>PDFs:</strong> copy pages into a new PDF. The document information dictionary is not copied. Encrypted PDFs are rejected. Decrypt first.</li>
+</ul>
+
+<h3>Code layout</h3>
+<ul>
+<li><code>core.py</code>: <code>inspect_image</code>, <code>inspect_pdf</code>, <code>inspect_file</code>, <code>find_files</code>, <code>clean_image</code>, <code>clean_pdf</code>, <code>clean_file</code>, <code>write_report</code>.</li>
+<li><code>cli.py</code>: argparse parser, text summary, exit codes.</li>
+<li>Inspection and cleaning are separate functions. A new format needs a reader and a cleaner, not changes to the CLI.</li>
+</ul>
 
 <h3>Limits</h3>
-<p>MetaClean is intentionally conservative. It skips existing output files unless you ask for overwriting, and it reports files it cannot process.</p>
 <ul>
-<li>It does not redact text or images on PDF pages.</li>
-<li>It cannot guarantee every possible metadata structure is removed.</li>
-<li>Re-encoding can change image size or color slightly.</li>
+<li>No redaction of text or images on PDF pages.</li>
+<li>No guarantee that every metadata structure is removed.</li>
+<li>Re-encoding can change file size and colour slightly.</li>
+<li>Office documents are not supported.</li>
+<li>Output files get new filesystem timestamps. Source timestamps are not copied.</li>
 </ul>
-<p class="note">Always inspect the cleaned copy before you share it. This is not a forensic sanitisation guarantee.</p>
+<p class="note">Inspect the cleaned copy with ExifTool before sharing. MetaClean is not a forensic sanitisation guarantee.</p>
 
-<h2>Python Techniques I Used</h2>
+<h3>Python techniques</h3>
 <ul>
-<li><strong>argparse:</strong> defines the <code>inspect</code> and <code>clean</code> commands, their options and the help text.</li>
-<li><strong>Small, focused functions:</strong> inspection, cleaning, file discovery and report writing live in <code>core.py</code>, and the CLI in <code>cli.py</code> ties them together.</li>
-<li><strong>Type hints:</strong> annotations like <code>Path</code>, <code>list[dict[str, Any]]</code> and <code>-&gt; int</code> document inputs and outputs.</li>
-<li><strong>pathlib:</strong> handles paths, extension checks, recursive searches and output locations.</li>
-<li><strong>Context managers:</strong> <code>with</code> blocks close image files and PDF output streams, even when an error occurs.</li>
-<li><strong>Defensive error handling:</strong> one bad file does not stop a batch scan, and exit codes tell scripts whether it worked.</li>
-<li><strong>Structured output:</strong> results are Python dictionaries, serialised with the <code>json</code> and <code>csv</code> modules.</li>
-<li><strong>Packaging:</strong> <code>pyproject.toml</code> declares dependencies and exposes <code>metaclean</code> as an installable command.</li>
+<li><strong>argparse:</strong> subcommands, options, help text.</li>
+<li><strong>pathlib:</strong> path handling, extension checks, recursive search, output paths.</li>
+<li><strong>Type hints:</strong> <code>Path</code>, <code>dict[str, Any]</code>, <code>-&gt; int</code>.</li>
+<li><strong>Context managers:</strong> <code>with</code> closes images and output streams on error.</li>
+<li><strong>Defensive handling:</strong> one bad file does not stop a batch. Exit codes report the outcome.</li>
+<li><strong>Structured output:</strong> dictionaries serialised with <code>json</code> and <code>csv</code>.</li>
+<li><strong>Packaging:</strong> <code>pyproject.toml</code> declares dependencies and installs the <code>metaclean</code> command.</li>
 </ul>
-<p>One design choice I like: inspection and cleaning are separate operations. That makes it easier to add more file formats later without tying every format to one large command function.</p>
 </article>
 </div>
 <script data-goatcounter="https://hardcore-blue.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
