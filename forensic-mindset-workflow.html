@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Forensic Mindset and Workflow - Hardcore Blue</title>
+<meta name="description" content="Forensic workflow basics: order of volatility, live and dead acquisition, imaging, memory capture, and how to seize evidence in different situations.">
+<title>Forensic Workflow: Basics #1 - Hardcore Blue</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,212 +17,383 @@
 <div class="article-meta">Articles</div>
 
 <article>
-<h1>Forensic Mindset and Workflow</h1>
+<h1>Forensic Workflow: Basics #1</h1>
 
-<p>Preserve everything. Change nothing.</p>
+<p><strong>Preserve everything. Change nothing.</strong></p>
+<p>This page covers acquisition: what to collect, in what order, and how to do it without damaging evidence.</p>
 
-<p>That is the whole job in two sentences. Everything else in this article is just how you stay true to it when a machine is on fire and everyone wants answers yesterday.</p>
-
-<p>Forensics is mostly simple OS and networking, done carefully. The tools are the easy part. The hard part is staying calm, staying methodical, and not fooling yourself.</p>
-
-<h2>The mindset</h2>
-
+<h2>1. Principles</h2>
 <ul>
-<li><strong>Preserve first, investigate second.</strong> Evidence you alter is evidence you may lose.</li>
-<li><strong>Work on a copy.</strong> Examine the working image, never the original.</li>
-<li><strong>Think in timelines.</strong> Almost every case reduces to "what happened, in what order?"</li>
-<li><strong>Rule things out.</strong> Chip away everything that doesn't look like an elephant. Figure out all the ways it didn't happen.</li>
-<li><strong>You will always leave a footprint.</strong> Locard's exchange principle cuts both ways: the attacker leaves dots, and so do you. Minimise your own system modification and write down what you touched.</li>
-<li><strong>Evidence is not evident.</strong> It needs context before it means anything.</li>
+<li><strong>Authority first.</strong> Act under a warrant, policy, or written scope. Stop at the edge of it.</li>
+<li><strong>Preserve first, analyse second.</strong> Collection decisions cannot be undone.</li>
+<li><strong>Work on copies.</strong> Hash the original. Examine the image.</li>
+<li><strong>Minimal footprint.</strong> Every action on a live system changes it. Do less. Record all of it.</li>
+<li><strong>Collect by volatility.</strong> Most fragile data first.</li>
+<li><strong>Document everything.</strong> Time, action, command, result.</li>
+<li><strong>Keep the chain of custody.</strong> Every transfer has a name, a time and a reason.</li>
 </ul>
 
-<p>Blue team's edge is simple. Every time red interacts with a target it leaves a dot, and blue can connect the dots before red knows it.</p>
+<h2>2. Order and Degrees of Volatility</h2>
+<p>Volatility is how fast data disappears. Collect the fastest-decaying data first.</p>
 
-<h2>The scene comes first</h2>
-
-<p>Before any tool, look at the machine. Feel the chassis for heat. Check the LEDs. Photograph the scene immediately.</p>
-
+<h3>Degrees</h3>
 <ul>
-<li>Keep the session alive. Don't lock it, don't log out.</li>
-<li>Isolate the network (pull the cable or cut the switch port) so nothing more leaves. Containment should follow from the evidence, not from panic.</li>
-<li>Volatile data disappears first, so dump memory before you power anything down.</li>
-<li>Communicate out of band. If the attacker is in the mail system, don't plan the response over email.</li>
-<li>If the machine hibernated, RAM was written to <code>hiberfil.sys</code>. For a VM, suspend it and grab the <code>.vmem</code> file.</li>
+<li><strong>Volatile:</strong> lost at power-off or when overwritten in seconds. CPU state, RAM, network tables, running processes.</li>
+<li><strong>Semi-volatile:</strong> survives a reboot but is overwritten by normal use. Swap, pagefile, temp files, rotating logs, free space.</li>
+<li><strong>Non-volatile:</strong> persists until deliberately destroyed. Disk contents, backups, archival media.</li>
 </ul>
 
-<p>Memory capture on Windows: FTK Imager, WinPMem, DumpIt, Magnet RAM Capture.</p>
+<h3>Order of volatility (RFC 3227)</h3>
+<table>
+<tr><th>#</th><th>Data</th><th>Lifetime</th><th>How to collect</th></tr>
+<tr><td>1</td><td>CPU registers, cache</td><td>Nanoseconds to milliseconds</td><td>Rarely practical. Partial state appears in crash dumps.</td></tr>
+<tr><td>2</td><td>Routing table, ARP cache, process table, kernel statistics, RAM</td><td>Until power loss or overwrite</td><td>Memory image, then network and process snapshots</td></tr>
+<tr><td>3</td><td>Temporary filesystems: <code>/tmp</code>, <code>/dev/shm</code>, swap, pagefile, hibernation file</td><td>Until reboot, cleanup or overwrite</td><td>Collected with the disk image, or live if tmpfs</td></tr>
+<tr><td>4</td><td>Disk</td><td>Until overwritten</td><td>Forensic image</td></tr>
+<tr><td>5</td><td>Remote logging and monitoring: syslog, SIEM, EDR, NetFlow, proxy, cloud audit logs</td><td>Days to months. Set by retention.</td><td>Export now. Send preservation requests.</td></tr>
+<tr><td>6</td><td>Physical configuration, network topology</td><td>Stable</td><td>Photos, diagrams, cabling notes</td></tr>
+<tr><td>7</td><td>Archival media: backups, tape, optical</td><td>Years</td><td>Copy and hash</td></tr>
+</table>
 
-<pre><code>winpmem_mini_x64.exe C:\evidence\mem.raw</code></pre>
-
-<p>Disk next. Image it, hash it, and only ever mount the image read-only.</p>
-
-<pre><code>sudo dc3dd if=/dev/sdb of=evidence.dd hash=sha256 log=acquisition.log
-sha256sum evidence.dd
-mmls evidence.dd                 # find the partition offset
-fls -r -o 2048 evidence.dd       # list files, deleted ones marked with *</code></pre>
-
-<h2>The workflow</h2>
-
-<p>This is the loop I want to become second nature:</p>
-
-<p><strong>identify, static, unpack, dynamic, deep dive, memory, extract IOCs, turn them into detections.</strong></p>
-
-<p>Start with one known indicator and pull on that thread. A hash, a domain or an IP is enough to begin.</p>
-
-<h3>1. Identify and fingerprint</h3>
-
-<p>Same input always gives the same hash. Change one bit and the output changes completely (the avalanche effect), and you can't work backwards from a hash to the data. A hash is a fingerprint. Use it to track a sample, confirm you've seen it before, and share it as an IoC.</p>
-
-<pre><code>file sample.exe                  # extension spoofing shows up here
-sha256sum sample.exe
-Get-FileHash -Algorithm SHA256 .\sample.exe     # on Windows
-hexdump -C sample.exe | head</code></pre>
-
-<p>Attackers can change a file hash with a tiny modification, so go fuzzier:</p>
-
-<pre><code>ssdeep -pb *                     # fuzzy hashing (CTPH), match similar files
-python3 -c "import pefile; print(pefile.PE('sample.exe').get_imphash())"</code></pre>
-
-<p>Masquerading and extension tricks map to MITRE ATT&amp;CK <strong>T1036</strong>.</p>
-
-<h3>2. Static analysis</h3>
-
-<p>No execution yet. Look at strings, imports, exports and sections. You're hunting for embedded filenames, IPs and domains, registry paths, Windows API names and command-line arguments.</p>
-
-<pre><code>strings -a sample.exe | less
-floss sample.exe                 # recovers obfuscated strings</code></pre>
-
-<h3>3. Unpack</h3>
-
-<p>If the strings look like junk and the imports are tiny, it's probably packed (<strong>T1027.002</strong>). UPX is the common one.</p>
-
-<pre><code>upx -d -o unpacked.exe sample.exe
-strings -a unpacked.exe | less</code></pre>
-
-<h3>4. Dynamic analysis</h3>
-
-<p>Now run it, but only in an isolated lab VM. Sysmon sits at the centre of this: it records process creation, network connections and file writes. Add Process Monitor and Wireshark.</p>
-
-<p>Traffic analysis belongs here. My lesson learnt: <em>always inspect the network traffic.</em></p>
-
-<h3>5. Deep dive</h3>
-
-<p>When behaviour isn't enough, open it in a disassembler (Ghidra, Cutter, IDA) or step through it in a debugger like x64dbg. Understanding the PE format and its sections pays off here, and so does knowing how a call travels from user mode through <code>NTDLL.DLL</code> into the kernel. Malware often tries to climb from user mode to kernel mode.</p>
-
-<h2>Memory forensics</h2>
-
-<p>Memory is the live state of the machine at one moment: processes, network connections, loaded DLLs, handles, command history, credentials, injected code.</p>
-
-<p>I think of it like a privilege escalation, only blind. You are looking around a system you can't touch, through a snapshot.</p>
-
-<p>The SANS approach, in order:</p>
-
+<h3>Modern additions</h3>
 <ul>
-<li>Identify and verify processes (look for odd names and wrong parents)</li>
-<li>Dig into DLLs and handles</li>
-<li>Review network activity</li>
-<li>Hunt for code injection (<strong>T1055</strong>, including process hollowing <strong>T1055.012</strong>)</li>
-<li>Look for rootkits (<strong>T1014</strong>)</li>
-<li>Dump the suspicious pieces for further analysis</li>
+<li><strong>Containers:</strong> lost when the container stops, or immediately with <code>--rm</code>.</li>
+<li><strong>Cloud instances:</strong> instance store and RAM are lost on stop or terminate.</li>
+<li><strong>Cloud logs:</strong> default retention can be short. Check it on day one.</li>
+<li><strong>Encryption keys:</strong> full-disk and container keys sit in RAM while volumes are mounted.</li>
+<li><strong>Mobile devices:</strong> state changes with lock status and uptime. See section 5.</li>
+<li><strong>Clock drift:</strong> volatile and easy to miss. Record the offset from true time.</li>
 </ul>
 
-<pre><code>vol -f mem.vmem windows.info
-vol -f mem.vmem windows.pslist
-vol -f mem.vmem windows.pstree               # find the parent process
-vol -f mem.vmem windows.cmdline
-vol -f mem.vmem windows.netscan
-vol -f mem.vmem windows.malfind              # injected code
-vol -f mem.vmem windows.dlllist --pid 1234
-vol -f mem.vmem windows.svcscan
-vol -f mem.vmem windows.registry.hivelist</code></pre>
+<h2>3. Types of Acquisition</h2>
 
-<p>Volatility 3 doesn't need a profile like version 2 did. <code>windows.info</code> works it out.</p>
+<h3>Live and dead</h3>
+<table>
+<tr><th></th><th>Live (system on)</th><th>Dead (system off)</th></tr>
+<tr><td>Captures</td><td>RAM, network state, processes, mounted encrypted volumes</td><td>Disk contents</td></tr>
+<tr><td>Risk</td><td>Alters the system. Tools leave a footprint.</td><td>Volatile data is already gone</td></tr>
+<tr><td>Use when</td><td>Active incident, encryption, malware, server that cannot go down</td><td>Powered-off devices, standard disk cases</td></tr>
+</table>
 
-<p>The low-tech trick still works too: dump the memory image to text and grep it.</p>
-
-<pre><code>strings -a mem.vmem &gt; mem.txt
-strings -a -el mem.vmem &gt;&gt; mem.txt        # UTF-16 strings
-grep -i "powershell" mem.txt</code></pre>
-
-<h2>Windows artefacts: where it leaves dots</h2>
-
-<p>This is where the timeline gets built. Two groups matter most.</p>
-
-<p><strong>Execution artefacts</strong> tell you what ran:</p>
-
+<h3>Scope of the copy</h3>
 <ul>
-<li>Prefetch: <code>C:\Windows\Prefetch</code></li>
-<li>Shimcache: <code>HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\AppCompatCache</code></li>
-<li>Amcache: <code>C:\Windows\AppCompat\Programs\Amcache.hve</code></li>
-<li>UserAssist and RunMRU in the user's registry hive</li>
-<li>Jump Lists, LNK files, Recent Items</li>
-<li>Event logs: <code>C:\Windows\System32\winevt\Logs</code></li>
-<li>SRUM database: <code>C:\Windows\System32\sru</code></li>
+<li><strong>Physical (bit-for-bit):</strong> every sector, including deleted data and slack space. Default for disks.</li>
+<li><strong>Logical:</strong> files and folders as the OS shows them. Misses deleted data. Used for mounted encrypted volumes and some cloud and mobile cases.</li>
+<li><strong>Targeted (triage):</strong> selected artefacts only. Fast. Used when volume or time forbids a full image. Example: KAPE.</li>
 </ul>
 
-<p><strong>Persistence artefacts</strong> tell you how it stays:</p>
-
+<h3>Image formats</h3>
 <ul>
-<li>Run and RunOnce keys, Winlogon keys, Startup folders (<strong>T1547.001</strong>)</li>
-<li>Scheduled tasks in <code>C:\Windows\System32\Tasks</code> (<strong>T1053.005</strong>)</li>
-<li>Services in <code>HKLM\System\CurrentControlSet\Services</code> (<strong>T1543.003</strong>)</li>
+<li><strong>Raw (dd):</strong> exact copy. Widely supported. Same size as the source.</li>
+<li><strong>E01 (EnCase):</strong> compressed, stores hashes and case metadata, segmented.</li>
+<li><strong>AFF4:</strong> modern format. Common for memory and triage collections.</li>
 </ul>
 
-<pre><code>reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run
-reg query HKLM\Software\Microsoft\Windows\CurrentVersion\Run
-schtasks /query /fo LIST /v
-autorunsc.exe -a * -c &gt; autoruns.csv            # Sysinternals</code></pre>
-
-<p>Rapid collection is KAPE's job, and Zimmerman's tools parse what it collects:</p>
-
-<pre><code>kape.exe --tsource C: --tdest D:\out --target !SANS_Triage
-PECmd.exe -d D:\out\C\Windows\Prefetch --csv D:\out\parsed</code></pre>
-
-<p>Don't forget the quiet places: the Recycle Bin, alternate data streams (<strong>T1564.004</strong>), shadow copies, and cleared logs (<strong>T1070.001</strong>). Deleted things often aren't gone.</p>
-
-<p>Then stitch everything together:</p>
-
-<pre><code>log2timeline.py --storage-file timeline.plaso evidence.dd
-psort.py -o l2tcsv -w timeline.csv timeline.plaso</code></pre>
-
-<h2>Think like the other side</h2>
-
-<p>A competent attacker doesn't talk to the victim from their own machine. Expect cheap disposable VPS boxes, compromised sites as redirectors, a command server hidden behind them, staging kept separate from exfiltration, and fast flux DNS (<strong>T1568.001</strong>). C2 traffic itself falls under <strong>T1071</strong>.</p>
-
-<p>That's why a single IP rarely tells the story. Follow the pattern instead.</p>
-
-<h2>Turn findings into detections</h2>
-
-<p>The investigation isn't finished until it makes the next one easier. Every IoC should become a detection. Ask: what's the signature?</p>
-
-<pre><code>rule Suspect_Sample_01
-{
-    strings:
-        $c2 = "c2.example.com" ascii wide
-    condition:
-        uint16(0) == 0x5A4D and $c2
-}</code></pre>
-
-<p>Run it with <code>yara -r rule.yar /path/to/scan</code>. YARA was created by Victor Alvarez at VirusTotal.</p>
-
-<h2>The psychology bit</h2>
-
-<p>Your own brain is the weakest tool in the kit.</p>
-
+<h3>Write protection</h3>
 <ul>
-<li><strong>Confirmation bias:</strong> you form a theory in the first ten minutes and start collecting only what supports it. Try to break your own theory. That's the rule-out mindset.</li>
-<li><strong>Anchoring:</strong> starting with one known indicator is useful, but don't let it become the whole case.</li>
-<li><strong>Urgency:</strong> the urge to act is strongest right when you should be most careful. Preserve first.</li>
-<li><strong>Hindsight:</strong> everything looks obvious once you know the ending. Write down what you knew at each step, so the report stays honest.</li>
+<li>Use a hardware write blocker whenever possible.</li>
+<li>Software option: boot Kali Live in forensic mode. It does not auto-mount internal disks.</li>
+<li>Set the device read-only and confirm it.</li>
+</ul>
+<pre><code>lsblk -o NAME,SIZE,TYPE,MODEL,SERIAL,RO
+sudo blockdev --setro /dev/sdb
+blockdev --getro /dev/sdb        # 1 = read-only</code></pre>
+
+<h3>Disk imaging</h3>
+<pre><code># record the source first
+sudo hdparm -I /dev/sdb | head -20     # model, serial
+sudo hdparm -N /dev/sdb                 # HPA check (ATA drives)
+
+# raw image with hashing and log
+sudo dc3dd if=/dev/sdb of=/mnt/evidence/case001-hdd01.dd hash=sha256 log=/mnt/evidence/case001-hdd01.log
+
+# E01 image (interactive)
+sudo ewfacquire /dev/sdb
+
+# failing drive: retry and keep a map
+sudo ddrescue -d -r3 /dev/sdb case001-hdd01.dd case001-hdd01.map
+
+# verify
+sudo sha256sum /dev/sdb case001-hdd01.dd
+ewfverify case001-hdd01.E01</code></pre>
+<ul>
+<li>Write the image to separate storage. Never to the source.</li>
+<li>Source hash and image hash must match. Record both.</li>
+<li>Make a second copy. Work on the second one.</li>
 </ul>
 
-<p>Risk means more things can happen than will. Your job is to explain the past, and the only way to do that reliably is to rule out the alternatives.</p>
+<h3>Mounting an image read-only</h3>
+<pre><code>mmls case001-hdd01.dd                        # partition layout
+sudo losetup -r -f -P --show case001-hdd01.dd   # prints /dev/loopN
+sudo mount -o ro,noexec,nodev /dev/loopNp1 /mnt/ev
+# ext3 and ext4: add noload to prevent journal replay
 
-<h2>Back to the core</h2>
+# E01 images
+sudo ewfmount case001-hdd01.E01 /mnt/ewf        # raw view at /mnt/ewf/ewf1</code></pre>
 
-<p>Again and again the work returns to the same fundamentals: how the OS works and how networks talk. Sysinternals sits right at the front of that, so I'm building my toolkit around it.</p>
+<h3>Memory acquisition</h3>
+<ul>
+<li>Run the tool from trusted external media.</li>
+<li>Write the output to external storage. Never to the target disk.</li>
+<li>The tool itself changes memory. Record the tool, version and time.</li>
+<li>Hash the dump after capture.</li>
+</ul>
+<table>
+<tr><th>Platform</th><th>Tools</th><th>Notes</th></tr>
+<tr><td>Windows</td><td>WinPMem, DumpIt, FTK Imager, Magnet RAM Capture</td><td>Run as administrator. Output file is roughly the size of RAM.</td></tr>
+<tr><td>Linux</td><td>AVML, LiME</td><td>LiME is a kernel module and must match the running kernel. Record <code>uname -r</code> and <code>/proc/version</code>. Volatility 3 needs a symbol table for that kernel.</td></tr>
+<tr><td>VMware</td><td>Suspend or snapshot the VM</td><td>Collect the <code>.vmem</code> with its <code>.vmss</code> or <code>.vmsn</code> file.</td></tr>
+<tr><td>VirtualBox</td><td><code>VBoxManage debugvm</code></td><td>Dumps guest memory without touching the guest.</td></tr>
+<tr><td>Hibernated host</td><td><code>hiberfil.sys</code></td><td>RAM at hibernation time. Collected with the disk image.</td></tr>
+</table>
+<pre><code>:: Windows
+winpmem_mini_x64.exe F:\case001\mem.raw
+certutil -hashfile F:\case001\mem.raw SHA256
 
-<p>The current is deep, but the method is simple. Preserve, copy, timeline, rule out, repeat.</p>
+# Linux
+sudo ./avml /media/ext/mem.lime
+sudo insmod lime-$(uname -r).ko "path=/media/ext/mem.lime format=lime"
+sha256sum /media/ext/mem.lime
+
+# VirtualBox
+VBoxManage debugvm "VMNAME" dumpvmcore --filename mem.elf</code></pre>
+
+<h3>Live triage snapshot</h3>
+<p>Run after the memory image. Trusted binaries only. Send output to external storage. Log every command with a timestamp.</p>
+<pre><code>:: Windows (cmd, from trusted media)
+date /t &amp; time /t
+ipconfig /all
+netstat -ano
+arp -a
+route print
+ipconfig /displaydns
+tasklist /v
+tasklist /svc
+query user
+net sessions
+net use
+powershell -c "Get-CimInstance Win32_Process | Select ProcessId,ParentProcessId,Name,CommandLine | Format-List"</code></pre>
+<pre><code># Linux (static binaries from trusted media where possible)
+date -u; uptime; uname -a
+who -a; w; last -Faiwx | head -50
+ps auxwwf
+ss -tulpanee
+ip addr; ip route; ip neigh
+lsof -nP +L1                                  # deleted but still open files
+ls -l /proc/*/exe 2&gt;/dev/null | grep deleted  # running binaries deleted from disk
+lsmod; mount; df -h</code></pre>
+<p>Some examiners run a quick network and process snapshot before the RAM image, because connections change in seconds and RAM capture takes minutes. Others image RAM first and rely on Volatility's network plugins. Pick one approach. Record it.</p>
+
+<h2>4. Power State: Shutdown or Pull the Plug</h2>
+<table>
+<tr><th></th><th>Graceful shutdown</th><th>Pull the plug</th></tr>
+<tr><td>Pros</td><td>Flushes buffers. Consistent filesystem.</td><td>Freezes disk state. No shutdown scripts run.</td></tr>
+<tr><td>Cons</td><td>Runs shutdown scripts. Writes to disk. May clear the pagefile. May trigger cleanup or wiping malware.</td><td>Unsaved data lost. Possible filesystem or database corruption.</td></tr>
+<tr><td>Default for</td><td>Servers and databases, agreed with the owner</td><td>Workstations and laptops in most protocols</td></tr>
+</table>
+<ul>
+<li>Laptops: remove the battery as well as the mains lead.</li>
+<li>Capture RAM and volatile data before either option.</li>
+<li>Record which option was used and why.</li>
+</ul>
+
+<h2>5. Seizing Evidence by Situation</h2>
+
+<h3>Powered-off computer</h3>
+<p><strong>Do:</strong></p>
+<ul>
+<li>Photograph the device, ports, cables and surroundings.</li>
+<li>Record make, model, serial number and condition.</li>
+<li>Remove the drive or boot a trusted forensic environment.</li>
+<li>Image behind a write blocker. Hash. Verify.</li>
+<li>Collect passwords, recovery keys and PINs if the owner provides them.</li>
+</ul>
+<p><strong>Avoid:</strong></p>
+<ul>
+<li>Powering it on to "take a quick look".</li>
+<li>Booting the installed OS.</li>
+<li>Connecting the drive to an analysis machine without a write blocker.</li>
+</ul>
+
+<h3>Powered-on, unlocked workstation</h3>
+<p><strong>Do:</strong></p>
+<ul>
+<li>Photograph the screen. Record open windows and visible processes.</li>
+<li>Keep the session alive. Do not change settings.</li>
+<li>Isolate the network by unplugging the cable or disabling the switch port.</li>
+<li>Capture RAM. Run the live triage snapshot.</li>
+<li>If disks are encrypted and mounted, acquire the decrypted volume live before power-off.</li>
+<li>Choose shutdown method. Record it.</li>
+</ul>
+<p><strong>Avoid:</strong></p>
+<ul>
+<li>Locking the screen or logging out.</li>
+<li>Opening files or browsing. It alters timestamps and creates artefacts.</li>
+<li>Installing tools on the target.</li>
+<li>Running antivirus, cleaners or updates.</li>
+<li>Writing output to the target disk.</li>
+</ul>
+
+<h3>Powered-on, locked</h3>
+<ul>
+<li>Photograph the screen. Record the time.</li>
+<li>Do not guess passwords. Do not log in with other accounts.</li>
+<li>Keep it powered. Leave it connected as found, unless the network must be isolated.</li>
+<li>RAM capture of a locked machine needs specialist methods such as DMA or cold boot. Escalate. Confirm legal authority first.</li>
+<li>Powering off loses RAM and may lose keys. Decide with the lead.</li>
+</ul>
+
+<h3>Full-disk encryption</h3>
+<ul>
+<li>BitLocker, FileVault, LUKS and VeraCrypt keys live in RAM while the volume is mounted.</li>
+<li>Powered on and unlocked: capture RAM and acquire the logical volume before power-off.</li>
+<li>Powered off: a physical image is encrypted. You need a key, password or recovery key.</li>
+<li>Look for recovery keys in Active Directory, the owner's Microsoft account, printouts and password managers.</li>
+</ul>
+<pre><code>manage-bde -status
+manage-bde -protectors -get C:      # BitLocker recovery key info, admin shell</code></pre>
+<ul>
+<li><strong>Avoid:</strong> shutting down an unlocked encrypted machine before the decrypted data and RAM are captured.</li>
+</ul>
+
+<h3>Servers and production systems</h3>
+<ul>
+<li>Agree actions with the system owner. Downtime has a cost.</li>
+<li>Prefer snapshots, agent-based collection and log export over power-off.</li>
+<li>Capture RAM and volatile data live.</li>
+<li>Image disks from a snapshot or a mirror, not from the running system where possible.</li>
+<li>Isolate the host with network rules. Do not shut it down.</li>
+<li><strong>Avoid:</strong> rebooting. Reboots wipe RAM and trigger cleanup jobs.</li>
+</ul>
+
+<h3>Virtual machines</h3>
+<ul>
+<li>Take a snapshot with memory included.</li>
+<li>Copy the VM files from the host: disk, <code>.vmx</code>, <code>.vmem</code>, <code>.vmss</code>, <code>.vmsn</code>, or the equivalent.</li>
+<li>Hash the copies.</li>
+<li>Collect hypervisor logs and host-side network logs.</li>
+<li><strong>Avoid:</strong> reverting snapshots or deleting old ones.</li>
+</ul>
+
+<h3>Cloud instances</h3>
+<ul>
+<li>Preserve logs first. Retention can be short.</li>
+<li>Snapshot the disks. Capture memory with LiME or AVML before any stop.</li>
+<li>Isolate with a restrictive security group. Do not terminate.</li>
+<li>Tag the evidence with case ID and time.</li>
+</ul>
+<pre><code>aws ec2 create-snapshot --volume-id vol-0123456789abcdef0 --description "case001 root volume"
+aws ec2 describe-snapshots --snapshot-ids snap-0123456789abcdef0</code></pre>
+<ul>
+<li>Collect audit logs: AWS CloudTrail, Azure Activity Log, GCP Cloud Audit Logs, VPC flow logs.</li>
+<li><strong>Avoid:</strong> stopping or terminating the instance. It loses RAM and instance-store data.</li>
+<li>If an autoscaling group manages the instance, detach it first so it is not replaced.</li>
+</ul>
+
+<h3>Containers</h3>
+<ul>
+<li>Preserve the container before stopping it.</li>
+<li>Save the filesystem, config and logs.</li>
+</ul>
+<pre><code>docker inspect CONTAINER &gt; inspect.json
+docker logs CONTAINER &gt; container.log 2&gt;&amp;1
+docker diff CONTAINER &gt; diff.txt
+docker export CONTAINER -o container-fs.tar
+docker commit CONTAINER case001-evidence</code></pre>
+<ul>
+<li>Collect host-side logs and the image digest.</li>
+<li><strong>Avoid:</strong> <code>docker rm</code>, <code>docker system prune</code>, and restarting policies that replace the container.</li>
+</ul>
+
+<h3>Mobile devices</h3>
+<ul>
+<li>Leave the device as found: on stays on, off stays off.</li>
+<li>Stop remote wipe and sync: use a Faraday bag or enable airplane mode. Record which.</li>
+<li>Keep it charged. Use a power bank in the bag.</li>
+<li>Photograph the screen. Record the time and any notifications.</li>
+<li>A device that has not been unlocked since boot is in a more protected state. Do not reboot it.</li>
+<li>Do not enter passcodes by guessing. Failed attempts can lock or wipe the device.</li>
+<li>Collect the SIM and any cloud account details the owner provides.</li>
+<li>Acquire with approved tools for the model and OS version.</li>
+</ul>
+
+<h3>Network devices</h3>
+<ul>
+<li>Capture traffic first if the device is in the path of an incident.</li>
+<li>Export the running configuration. Export logs.</li>
+<li><strong>Avoid:</strong> rebooting. The running config and tables are lost. Do not save the running config over the startup config.</li>
+</ul>
+<pre><code>show running-config
+show ip arp
+show mac address-table
+show logging
+show version</code></pre>
+
+<h3>External drives and removable media</h3>
+<ul>
+<li>Photograph, label and record the serial number.</li>
+<li>Connect through a write blocker only.</li>
+<li>Disable auto-mount and autorun on the analysis system.</li>
+<li>Image, hash, then examine the image.</li>
+</ul>
+
+<h3>Active incident or ransomware</h3>
+<ul>
+<li>Isolate the network. Leave the machine on.</li>
+<li>Capture RAM first. Encryption keys and malware may only exist in memory.</li>
+<li>Collect logs from firewalls, EDR and domain controllers in parallel.</li>
+<li>Communicate out of band if the attacker may have mail access.</li>
+<li><strong>Avoid:</strong> rebooting, reimaging or wiping before collection.</li>
+</ul>
+
+<h2>6. Global Avoid List</h2>
+<ul>
+<li>Working on the original evidence.</li>
+<li>Writing anything to the source disk, including tool output.</li>
+<li>Copying files with a normal file copy instead of imaging. It loses metadata and deleted data.</li>
+<li>Using binaries from the target. Rootkits can lie.</li>
+<li>Running <code>chkdsk</code>, <code>fsck</code> or repair tools on evidence.</li>
+<li>Skipping the hash.</li>
+<li>Powering down before volatile data is captured.</li>
+<li>Letting the suspect or other users touch the system after seizure.</li>
+<li>Mixing evidence from different cases in one container or one log.</li>
+<li>Undocumented actions.</li>
+<li>Collecting outside the authorised scope.</li>
+</ul>
+
+<h2>7. Documentation and Chain of Custody</h2>
+<p>Record at collection time. Times in UTC with the local offset.</p>
+<pre><code>Case ID:        case001
+Evidence ID:    case001-hdd01
+Collected by:   NAME
+Date/time UTC:  YYYY-MM-DD HH:MM  (local offset +HH:MM)
+Location:       ...
+Item:           make / model / serial number
+State found:    on / off / locked / unlocked / hibernated
+System clock:   shown time vs true time, offset
+Photos:         file names
+Tools:          name, version, command line
+Hashes:         source SHA-256 / image SHA-256
+Storage:        container, location, seal number
+
+Transfers:
+  date/time | from | to | reason | signatures</code></pre>
+
+<h2>8. Acquisition Checklist</h2>
+<ol>
+<li>Confirm authority and scope.</li>
+<li>Secure the scene. Photograph everything before touching it.</li>
+<li>Record the state, system time and offset from true time.</li>
+<li>Decide live or dead. Use the order of volatility.</li>
+<li>Capture memory. Hash it.</li>
+<li>Collect network and process snapshots. Log each command.</li>
+<li>Contain: isolate the network. Do not power off yet.</li>
+<li>Acquire mounted encrypted volumes live if present.</li>
+<li>Choose shutdown method. Record it.</li>
+<li>Image disks behind a write blocker. Verify hashes.</li>
+<li>Label, seal and log custody.</li>
+<li>Work on copies.</li>
+</ol>
 </article>
 </div>
 <script data-goatcounter="https://hardcore-blue.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
