@@ -3,129 +3,82 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080d0d">
 <title>Hardcore Blue - Computer Forensics</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="home">
 <div class="home-wrap">
+  <nav class="terminal-topbar" aria-label="Site identity">
+    <a class="terminal-brand" href="index.html"><span class="brand-mark">HB</span><span>HARDCORE BLUE</span><i>/</i><span>FIELD TERMINAL</span></a>
+    <div class="terminal-status"><span class="status-dot"></span> SYSTEM READY <span class="node-id">LOCAL NODE · 01</span></div>
+  </nav>
 
-<header>
-<div class="hex-strip" id="hexstrip" aria-hidden="true">2B 0D A5 <span class="wake">57 61 6B 65 20 55 70</span> B8 7F 33 FF D1 32 89 E4 C8 3E D0 B3 6E 08 E6 79 A2 59 0D B1 7C 71 B8 EE 70 9D D7 FD 6F AC 7A 4C 91 0B E2 5D 38 C7 A4 16 F0 8B 3D 62 9E D5 47 1A BC 84 2F 95 C3 0E 76 D9 B2 4F A1 68 EA 13 9B 5C F7 2A D4 81 3B C6 60 AE 17 E9 4D 92 07 BA 5F 28</div>
-<h1 class="forensic-title" id="title">HARDCORE BLUE</h1>
-<p class="tagline">Cybersecurity and forensic notes</p>
-<p class="welcome">Welcome to my personal blog and portfolio. </p>
-</header>
+  <header class="terminal-hero">
+    <div class="eyebrow"><span>FORENSIC NOTES &amp; FIELD WORK</span><span class="eyebrow-rule"></span><span>OPERATOR // j4ck13</span></div>
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="prompt"><span>guest@hardcoreblue</span>:<span>~</span>$ ./identify.sh</p>
+        <h1 class="forensic-title" id="title" data-text="HARDCORE BLUE">HARDCORE BLUE</h1>
+        <p class="terminal-intro">A quiet place for noisy evidence.<br>Practical workflows for forensic freaks: exam and course notes, field guides, and beginner-friendly code.</p>
+        <a class="enter" href="#archive"><span class="enter-icon">[&gt;]</span> BROWSE THE ARCHIVE <span class="enter-arrow">↘</span></a>
+      </div>
+      <aside class="readout" aria-label="Illustrative system stats">
+        <div class="readout-head"><span>HOST STATUS <i>// DEMO</i></span><span class="readout-led"></span></div>
+        <div class="readout-line"><span>CPU LOAD</span><b>08% <i class="meter"><i></i><i></i><i></i><i></i><i></i><i></i></i></b></div>
+        <div class="readout-line"><span>MEMORY</span><b>3.2 / 16 GB</b></div>
+        <div class="readout-line"><span>ROOT VOLUME</span><b>42% USED</b></div>
+        <div class="readout-line"><span>UPTIME</span><b>04:18:32</b></div>
+        <div class="readout-foot">NODE: HB-01 <span>·</span> STATUS: NOMINAL</div>
+      </aside>
+    </div>
+    <div class="hexline" aria-label="Hexadecimal data stream">C7 1A 77 61 6B 65 20 75 70 9D 4F 2B 6C A0 D4 11 8E 3B 52 09 7F 2A 91 66</div>
+  </header>
 
-<div class="home-grid">
-<main>
-<section class="sec">
-<h2>CJCA</h2>
-<a href="cjca-exam.html">CJCA: Reflection and Tips</a>
-<a href="field-notes.html">CJCA Field Notes</a>
-</section>
+  <main>
+    <section class="archive" id="archive">
+      <div class="section-head"><h2><span>01</span> THE ARCHIVE</h2><span class="section-note">SELECT A FILE TO INSPECT</span></div>
+      <div class="archive-grid">
+        <a class="file-card featured" href="field-notes.html"><span class="file-type">FIELD GUIDE <span>01 / CJCA</span></span><span class="file-title">CJCA Field Notes</span><span class="file-desc">A practical collection of enumeration and investigation references.</span><span class="file-open">OPEN FILE <b>↗</b></span></a>
+        <a class="file-card" href="forensic-mindset-workflow.html"><span class="file-type">ARTICLE <span>02 / METHOD</span></span><span class="file-title">Forensic Workflow</span><span class="file-desc">Slow down, preserve context, and follow the evidence.</span><span class="file-open">READ ENTRY <b>↗</b></span></a>
+        <a class="file-card" href="python-pattern-recognition.html"><span class="file-type">TOOLKIT <span>03 / PYTHON</span></span><span class="file-title">Pattern Notebook</span><span class="file-desc">Small scripts and useful patterns for repeatable analysis.</span><span class="file-open">INSPECT NOTES <b>↗</b></span></a>
+      </div>
+    </section>
 
-<section class="sec">
-<h2>Articles</h2>
-<a href="forensic-mindset-workflow.html">Forensic Workflow: Basics #1</a>
-<a href="what-is-metadata.html">Metadata: Extract and Strip</a>
-</section>
+    <section class="archive-lower">
+      <div class="more-files">
+        <div class="section-head"><h2><span>02</span> MORE FILES</h2><span class="section-note">ADDITIONAL RECORDS</span></div>
+        <a href="cjca-exam.html"><span>COURSE NOTES</span><b>CJCA: Reflection and Tips</b><i>↗</i></a>
+        <a href="what-is-metadata.html"><span>ARTICLE</span><b>Metadata: Extract and Strip</b><i>↗</i></a>
+        <a href="bash-pattern-notebook.html"><span>SHELL NOTES</span><b>Bash Pattern Notebook</b><i>↗</i></a>
+        <a href="bash-pattern-notebook-2.html"><span>SHELL NOTES</span><b>Bash Pattern Notebook 2: Grass Roots</b><i>↗</i></a>
+        <a href="tradecraft.html"><span>REFERENCE LIBRARY</span><b>Cheat sheets and reference PDFs</b><i>↗</i></a>
+      </div>
+      <aside class="profile-panel">
+        <div class="section-head"><h2><span>03</span> OPERATOR FILE</h2></div>
+        <ul>
+          <li>BA Psychology (Hons)</li>
+          <li>EC-Council CCT</li>
+          <li>HTB CJCA</li>
+          <li>HTB CDSA <span class="wip">IN PROGRESS</span></li>
+        </ul>
+        <div class="profile-signoff">FIELD LOG SIGNED / j4ck13</div>
+      </aside>
+    </section>
+  </main>
 
-<section class="sec">
-<h2>Field and programming notes</h2>
-<a href="python-pattern-recognition.html">Python Pattern Notebook</a>
-<a href="bash-pattern-notebook.html">Bash Pattern Notebook</a>
-<a href="bash-pattern-notebook-2.html">Bash Pattern Notebook 2: Grass Roots</a>
-</section>
-
-<section class="sec">
-<h2>Tradecraft</h2>
-<a href="tradecraft.html">Cheat sheets and reference PDFs</a>
-</section>
-</main>
-
-<aside class="side">
-<h2>My portfolio</h2>
-<ul>
-<li>BA Psychology (Hons)</li>
-<li>EC-Council CCT</li>
-<li>HTB CJCA</li>
-<li>HTB CDSA <span class="wip">in progress</span></li>
-</ul>
-</aside>
+  <footer class="terminal-footer"><span><span class="status-dot"></span> END OF TRANSMISSION</span><a href="mailto:hardcore-blue@protonmail.com">CONTACT THE OPERATOR ↗</a><span>HARDCORE BLUE / 2026</span></footer>
 </div>
-
-<footer class="home-foot">
-<a href="mailto:hardcore-blue@protonmail.com">hardcore-blue@protonmail.com</a>
-</footer>
-
-</div>
-
 <script>
 (function () {
-  var el = document.getElementById("title");
-  var strip = document.getElementById("hexstrip");
-  var finalText = el.textContent;
-  var pool = "01ABCDEF<>/#";
-  var hex = "0123456789ABCDEF";
-
-  function randHex(n) {
-    var s = "";
-    for (var i = 0; i < n; i++) {
-      s += hex.charAt(Math.floor(Math.random() * 16));
-      if (i % 2 === 1) s += " ";
-    }
-    return s;
-  }
-
+  var title = document.getElementById("title");
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-  el.setAttribute("aria-label", finalText);
-  var revealed = 0;
-  var timer = setInterval(function () {
-    var out = "";
-    for (var i = 0; i < finalText.length; i++) {
-      var c = finalText.charAt(i);
-      if (c === " " || i < revealed) {
-        out += c;
-      } else {
-        out += pool.charAt(Math.floor(Math.random() * pool.length));
-      }
-    }
-    el.textContent = out;
-    revealed += 0.4;
-    if (revealed >= finalText.length) {
-      el.textContent = finalText;
-      clearInterval(timer);
-      schedule();
-    }
-  }, 45);
-
-  function glitchBurst() {
-    var frames = 4 + Math.floor(Math.random() * 4);
-    var n = 0;
-    el.classList.add("glitch");
-    var t = setInterval(function () {
-      var chars = finalText.split("");
-      var hits = 2 + Math.floor(Math.random() * 3);
-      for (var k = 0; k < hits; k++) {
-        var i = Math.floor(Math.random() * chars.length);
-        if (chars[i] !== " ") chars[i] = pool.charAt(Math.floor(Math.random() * pool.length));
-      }
-      el.textContent = chars.join("");
-      n++;
-      if (n >= frames) {
-        clearInterval(t);
-        el.textContent = finalText;
-        el.classList.remove("glitch");
-        schedule();
-      }
-    }, 70);
+  function flicker() {
+    title.classList.add("glitch");
+    setTimeout(function () { title.classList.remove("glitch"); }, 400);
+    setTimeout(flicker, 4200 + Math.random() * 5200);
   }
-
-  function schedule() {
-    setTimeout(glitchBurst, 2500 + Math.random() * 4000);
-  }
-
+  setTimeout(flicker, 1800);
 })();
 </script>
 <script data-goatcounter="https://hardcore-blue.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
