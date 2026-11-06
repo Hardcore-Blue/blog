@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hardcore Blue Forensic Dev</title>
+<title>Hardcore Blue - Computer Forensics</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="home">
@@ -11,7 +11,7 @@
 
 <header>
 <div class="hex-strip" id="hexstrip" aria-hidden="true">2B 0D A5 <span class="wake">57 61 6B 65 20 55 70</span> B8 7F 33 FF D1 32 89 E4 C8 3E D0 B3 6E 08 E6 79 A2 59 0D B1 7C 71 B8 EE 70 9D D7 FD 6F AC 7A 4C 91 0B E2 5D 38 C7 A4 16 F0 8B 3D 62 9E D5 47 1A BC 84 2F 95 C3 0E 76 D9 B2 4F A1 68 EA 13 9B 5C F7 2A D4 81 3B C6 60 AE 17 E9 4D 92 07 BA 5F 28</div>
-<h1 class="forensic-title" id="title">HARDCORE BLUE FORENSIC DEV</h1>
+<h1 class="forensic-title" id="title">HARDCORE BLUE</h1>
 <p class="tagline">Cybersecurity and forensic notes</p>
 <p class="welcome">Welcome to my personal blog and portfolio. </p>
 </header>
@@ -19,22 +19,22 @@
 <div class="home-grid">
 <main>
 <section class="sec">
+<h2>CJCA</h2>
+<a href="cjca-exam.html">CJCA: Reflection and Tips</a>
+<a href="field-notes.html">CJCA Field Notes</a>
+</section>
+
+<section class="sec">
 <h2>Articles</h2>
-<a href="forensic-mindset-workflow.html">Forensic mindset and workflow</a>
-<a href="what-is-metadata.html">Metadata: what it is and why it matters</a>
+<a href="forensic-mindset-workflow.html">Forensic Workflow: Basics #1</a>
+<a href="what-is-metadata.html">Metadata: Extract and Strip</a>
 </section>
 
 <section class="sec">
 <h2>Field and programming notes</h2>
-<a href="field-notes.html">CJCA Field Notes</a>
-<a href="python-pattern-recognition.html">Python Pattern Recognition</a>
+<a href="python-pattern-recognition.html">Python Pattern Notebook</a>
 <a href="bash-pattern-notebook.html">Bash Pattern Notebook</a>
 <a href="bash-pattern-notebook-2.html">Bash Pattern Notebook 2: Grass Roots</a>
-</section>
-
-<section class="sec">
-<h2>Exams and course notes</h2>
-<a href="cjca-exam.html">CJCA: Reflection and Tips</a>
 </section>
 
 <section class="sec">
@@ -96,8 +96,35 @@
     if (revealed >= finalText.length) {
       el.textContent = finalText;
       clearInterval(timer);
+      schedule();
     }
   }, 45);
+
+  function glitchBurst() {
+    var frames = 4 + Math.floor(Math.random() * 4);
+    var n = 0;
+    el.classList.add("glitch");
+    var t = setInterval(function () {
+      var chars = finalText.split("");
+      var hits = 2 + Math.floor(Math.random() * 3);
+      for (var k = 0; k < hits; k++) {
+        var i = Math.floor(Math.random() * chars.length);
+        if (chars[i] !== " ") chars[i] = pool.charAt(Math.floor(Math.random() * pool.length));
+      }
+      el.textContent = chars.join("");
+      n++;
+      if (n >= frames) {
+        clearInterval(t);
+        el.textContent = finalText;
+        el.classList.remove("glitch");
+        schedule();
+      }
+    }, 70);
+  }
+
+  function schedule() {
+    setTimeout(glitchBurst, 2500 + Math.random() * 4000);
+  }
 
 })();
 </script>

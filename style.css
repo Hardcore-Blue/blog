@@ -80,3 +80,17 @@ details.pdf[open] summary{color:var(--bright)}
   color: #5b8fe0;
   text-shadow: 0 0 10px rgba(91, 143, 224, 0.55);
 }
+
+/* Title glitch: short corruption bursts every few seconds (script adds .glitch) */
+.forensic-title.glitch{animation:glitch-burst .4s steps(1) both}
+@keyframes glitch-burst{
+  0%{transform:translate(0);opacity:1;text-shadow:-3px 0 #ff2a6d,3px 0 #05d9e8}
+  15%{transform:translate(-3px,1px) skewX(-6deg);opacity:.8;text-shadow:3px 0 #ff2a6d,-3px 0 #05d9e8}
+  30%{transform:translate(2px,-1px);clip-path:inset(8% 0 55% 0);opacity:1;text-shadow:-2px 0 #ff2a6d,2px 0 #05d9e8}
+  45%{transform:translate(-2px,0);clip-path:inset(58% 0 6% 0)}
+  60%{clip-path:none;opacity:.5;transform:translate(0)}
+  75%{opacity:1;transform:translate(3px,0) skewX(5deg);text-shadow:2px 0 #ff2a6d,-2px 0 #05d9e8}
+  90%{transform:translate(-1px,0);opacity:.7}
+  100%{transform:none;clip-path:none;opacity:1;text-shadow:0 0 22px rgba(47,123,255,.55)}
+}
+@media (prefers-reduced-motion:reduce){.forensic-title.glitch{animation:none}}
